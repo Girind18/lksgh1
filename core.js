@@ -1,13 +1,19 @@
-// ========== CORE.JS ==========
+// ========== CORE.JS - REALTIME SYNC ==========
 
-// ⚠️ WAJIB GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTIop3nJRK5YINNGnmOKv24TNCUCNL51H3W_etz8LaiWjznxW0XliMb6_tE3pQuxJK3w/exec';
+// ⚠️ GANTI dengan URL Web App dari Deploy Apps Script
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
 const DATA_KEY = 'awb_gh1_data_v1';
 const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
+const DRAFT_KEY = 'awb_gh1_draft_v1';
 const QUEUE_KEY = 'awb_gh1_queue_v1';
+const SYNC_INTERVAL = 30000; // 30 detik
+
+let syncTimer = null;
+let isSyncing = false;
+let lastSyncTime = null;
 
 // ========== MASTER KEGIATAN ==========
 const KEGIATAN_UTAMA = [
@@ -116,18 +122,10 @@ function renderKegiatanLainnya() {
           <input type="text" data-kocor-ml="${item.key}" placeholder="Contoh: 100 ml">
         </div>
       `;
-    } else if (item.sub === 'row') {
-      subContent = `
-        <label>Jumlah ROW</label>
-        <select data-row-lainnya="${item.key}">
-          <option value="">Pilih jumlah row...</option>
-          ${ROW_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
-        </select>
-      `;
     } else if (item.sub === 'text') {
       subContent = `
         <label>Jumlah Populasi (Tulis Manual)</label>
-        <textarea data-text-lainnya="${item.key}" rows="2" placeholder="Contoh: Zona 1: 1200 tanaman, Zona 2: 800 tanaman"></textarea>
+        <textarea data-text-lainnya="${item.key}" rows="2" placeholder="Contoh: Zona 1: 1200 tanaman"></textarea>
       `;
     } else if (item.sub === 'radio_selesai') {
       subContent = `
@@ -206,6 +204,7 @@ function toggleActivityBlock(safeId) {
       else el.value = '';
     });
   }
+  scheduleDraftSave();
 }
 
 // ========== WELCOME CONNECT ==========
@@ -218,10 +217,12 @@ async function welcomeConnect() {
     localStorage.setItem(WELCOMED_KEY, '1');
     await syncWithGoogleSheet(true);
     showApp();
+    startAutoSync();
     showToast('✅ Berhasil tersambung ke Google Sheets!', 'success');
   } catch (error) {
     console.error('Koneksi gagal:', error);
     showApp();
+    startAutoSync();
     showToast('⚠️ Mode Offline: Data disimpan lokal.', 'error');
   } finally {
     btn.disabled = false;
@@ -232,31 +233,37 @@ async function welcomeConnect() {
 // ========== GET ==========
 async function syncWithGoogleSheet(isInitial = false) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
+  if (isSyncing) return;
 
-  console.log('📡 GET dari:', SCRIPT_URL);
-  const response = await fetch(SCRIPT_URL + '?t=' + Date.now(), {
-    method: 'GET', redirect: 'follow'
-  });
-  console.log('📡 Status:', response.status);
+  isSyncing = true;
+  try {
+    console.log('📡 GET sync dimulai...');
+    const response = await fetch(SCRIPT_URL + '?t=' + Date.now(), {
+      method: 'GET', redirect: 'follow'
+    });
 
-  if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
 
-  const text = await response.text();
-  let data;
-  try { data = JSON.parse(text); }
-  catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
 
-  localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  return data;
+    localStorage.setItem(DATA_KEY, JSON.stringify(data));
+    lastSyncTime = new Date();
+    updateSyncStatus();
+    console.log('✅ GET sync selesai. Total data:', data.count);
+    return data;
+  } finally {
+    isSyncing = false;
+  }
 }
 
 // ========== POST ==========
 async function kirimLksKeSheet(payload) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
 
-  console.log('📤 POST ke:', SCRIPT_URL);
-  console.log('📦 Payload (size):', JSON.stringify(payload).length, 'chars');
-
+  console.log('📤 POST payload...');
   const response = await fetch(SCRIPT_URL, {
     method: 'POST',
     mode: 'cors',
@@ -265,43 +272,139 @@ async function kirimLksKeSheet(payload) {
     redirect: 'follow'
   });
 
-  console.log('📥 Status:', response.status);
   if (!response.ok) throw new Error('HTTP ' + response.status);
 
   const text = await response.text();
-  console.log('📥 Response body:', text);
-
   let result;
   try { result = JSON.parse(text); }
   catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
 
   if (result.status !== 'success') throw new Error(result.message || 'Server menolak data');
-
-  console.log('✅ Berhasil disimpan ke Sheet');
+  console.log('✅ POST sukses:', result.message);
   return result;
 }
 
+// ========== AUTO-SYNC LOOP ==========
+function startAutoSync() {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(async () => {
+    if (document.hidden) return; // skip kalau tab tidak aktif
+    if (!navigator.onLine) return;
+    
+    // Cek apakah ada queue
+    const q = getQueue();
+    if (q.length > 0) {
+      await flushQueue();
+    }
+  }, SYNC_INTERVAL);
+  console.log('🔄 Auto-sync loop dimulai setiap', SYNC_INTERVAL / 1000, 'detik');
+}
+
+// ========== AUTO-SAVE DRAFT ==========
+let draftTimer = null;
+function scheduleDraftSave() {
+  if (draftTimer) clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraft, 1500); // 1.5 detik setelah user berhenti ngetik
+}
+
+function saveDraft() {
+  try {
+    const data = collectLksGH1Data();
+    delete data.kendalaFotoData; // jangan simpan base64 foto di draft
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+    console.log('💾 Draft tersimpan otomatis');
+  } catch (e) {
+    console.warn('Draft save error:', e);
+  }
+}
+
+function loadDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+    if (!draft || !draft.nama) return;
+    
+    // Restore fields dasar
+    document.getElementById('glks-tanggal').value = draft.tanggal || '';
+    document.getElementById('glks-nama').value = draft.nama || '';
+    document.getElementById('glks-kendala').value = draft.deskripsiKendala || '';
+    document.getElementById('glks-temuan').value = draft.temuanHPT || '';
+    
+    // Restore radio panen
+    if (draft.panenHariIni) {
+      const el = document.querySelector(`input[name="glks-panen"][value="${draft.panenHariIni}"]`);
+      if (el) el.checked = true;
+    }
+    if (draft.panenLainnya) {
+      document.getElementById('glks-panen-lainnya').value = draft.panenLainnya;
+    }
+    
+    // Restore radio grading
+    if (draft.grading) {
+      const el = document.querySelector(`input[name="glks-grading"][value="${draft.grading}"]`);
+      if (el) el.checked = true;
+    }
+    
+    console.log('📥 Draft restored');
+  } catch (e) {
+    console.warn('Load draft error:', e);
+  }
+}
+
 // ========== QUEUE ==========
+function getQueue() {
+  return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+}
+
 function pushToQueue(payload) {
-  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  const q = getQueue();
   q.push(payload);
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  updateSyncStatus();
+  console.log('📥 Data masuk queue. Total:', q.length);
 }
 
 async function flushQueue() {
-  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-  if (q.length === 0) return;
+  const q = getQueue();
+  if (q.length === 0 || isSyncing) return;
 
-  console.log('🔄 Mengirim ' + q.length + ' data dari queue...');
+  console.log('🔄 Kirim queue:', q.length, 'item');
   const remaining = [];
 
   for (const item of q) {
-    try { await kirimLksKeSheet(item); }
-    catch (err) { console.warn('Gagal:', err); remaining.push(item); }
+    try {
+      await kirimLksKeSheet(item);
+    } catch (err) {
+      console.warn('Gagal kirim:', err);
+      remaining.push(item);
+    }
   }
 
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
-  if (remaining.length === 0) showToast('✅ Semua data queue tersinkron!', 'success');
+  updateSyncStatus();
+
+  if (remaining.length === 0) {
+    showToast('✅ Semua data queue tersinkron!', 'success');
+    await syncWithGoogleSheet();
+  }
+}
+
+// ========== STATUS INDICATOR ==========
+function updateSyncStatus() {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+
+  const q = getQueue();
+  if (q.length > 0) {
+    el.textContent = `⏳ ${q.length} data menunggu sync`;
+    el.style.color = '#facc15';
+  } else if (lastSyncTime) {
+    const t = lastSyncTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    el.textContent = `✅ Tersinkron ${t}`;
+    el.style.color = '#86efac';
+  } else {
+    el.textContent = '⚪ Belum sync';
+    el.style.color = '#e5e7eb';
+  }
 }
 
 // ========== SHOW APP ==========
@@ -339,7 +442,7 @@ function generateId() {
   return String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
 }
 
-// ========== TOGGLE CONDITIONAL (Panen) ==========
+// ========== TOGGLE CONDITIONAL ==========
 function toggleConditionalInputs() {
   const panenLainnya = document.querySelector('input[name="glks-panen"][value="Yang lain:"]');
   const panenInput = document.getElementById('glks-panen-lainnya');
@@ -347,9 +450,10 @@ function toggleConditionalInputs() {
     panenInput.style.display = panenLainnya.checked ? 'block' : 'none';
     if (!panenLainnya.checked) panenInput.value = '';
   }
+  scheduleDraftSave();
 }
 
-// ========== FOTO KENDALA ==========
+// ========== FOTO ==========
 let kendalaPhotoData = null;
 let kendalaPhotoName = null;
 
@@ -371,9 +475,6 @@ function initFotoUpload() {
     if (file.size > 3 * 1024 * 1024) {
       showToast('⚠️ Ukuran foto maksimal 3MB', 'error');
       fotoInput.value = '';
-      kendalaPhotoData = null;
-      kendalaPhotoName = null;
-      document.getElementById('foto-preview').innerHTML = '';
       return;
     }
 
@@ -446,9 +547,6 @@ function collectLksGH1Data() {
         result.dosis = d ? d.value : '';
         result.air = a ? a.value : '';
         result.aplikasiMl = ml ? ml.value : '';
-      } else if (sub === 'row') {
-        const sel = block.querySelector(`select[data-row-lainnya="${key}"]`);
-        result.row = sel ? sel.value : '';
       } else if (sub === 'text') {
         const txt = block.querySelector(`textarea[data-text-lainnya="${key}"]`);
         result.text = txt ? txt.value : '';
@@ -473,7 +571,7 @@ function collectLksGH1Data() {
   });
 
   return {
-    id: generateId(),
+    id: window.currentEditId || generateId(),
     timestamp: new Date().toISOString(),
     lokasi: 'GH 1',
     tanggal: document.getElementById('glks-tanggal').value,
@@ -499,22 +597,27 @@ async function simpanDataLksGH1() {
     return;
   }
 
+  // Simpan ke localStorage
   let db = JSON.parse(localStorage.getItem(LKS_STORAGE_KEY) || '[]');
   const dataForLocal = { ...data };
   delete dataForLocal.kendalaFotoData;
   db.push(dataForLocal);
   localStorage.setItem(LKS_STORAGE_KEY, JSON.stringify(db));
 
+  // Hapus draft karena sudah disubmit
+  localStorage.removeItem(DRAFT_KEY);
+
   showToast('⏳ Menyimpan ke server...', 'success');
 
   try {
     await kirimLksKeSheet(data);
-    showToast('✅ LKS GH 1 berhasil disimpan & disinkronkan!', 'success');
+    showToast('✅ LKS berhasil disimpan & disinkronkan!', 'success');
     resetFormLksGH1();
+    await syncWithGoogleSheet();
   } catch (error) {
     console.error('❌ Sync error:', error);
     pushToQueue(data);
-    showToast('⚠️ Gagal sync: ' + error.message, 'error');
+    showToast('⚠️ Data masuk queue, akan dicoba lagi otomatis.', 'error');
   }
 }
 
@@ -533,9 +636,22 @@ function resetFormLksGH1() {
 
   kendalaPhotoData = null;
   kendalaPhotoName = null;
+  window.currentEditId = null;
   document.getElementById('foto-preview').innerHTML = '';
+  localStorage.removeItem(DRAFT_KEY);
 
   toggleConditionalInputs();
+}
+
+// ========== BIND AUTO-SAVE KE SEMUA INPUT ==========
+function bindAutoSave() {
+  const form = document.getElementById('form-lks-gh1');
+  if (!form) return;
+
+  // Semua input/select/textarea → auto-save draft
+  form.addEventListener('input', scheduleDraftSave);
+  form.addEventListener('change', scheduleDraftSave);
+  console.log('🔗 Auto-save draft aktif');
 }
 
 // ========== INIT ==========
@@ -543,4 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderKegiatanUtama();
   renderKegiatanLainnya();
   initFotoUpload();
+  bindAutoSave();
+
+  // Restore draft (kalau ada)
+  setTimeout(loadDraft, 500);
 });
