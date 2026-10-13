@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#2d5016">
+  <meta name="description" content="LKS GH 1 - Dashboard Kegiatan Grower">
+
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="./logo-awb.png">
+  <link rel="apple-touch-icon" href="./logo-awb.png">
+
+  <title>LKS GH 1 - AWB</title>
+  <style>
+    /* ===== Global Reset & Base ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7f4;
+      color: #1f2937;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== Welcome Screen ===== */
+    #welcome-screen {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1.5rem;
+      background: #f5f7f4;
+      text-align: center;
+      transition: opacity 0.3s ease;
+    }
+    #welcome-screen.hide { display: none; }
+    #welcome-screen .w-logo {
+      height: 80px;
+      width: auto;
+      margin-bottom: 1rem;
+    }
+    #welcome-screen .w-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #2d5016;
+      margin: 0 0 0.25rem;
+      letter-spacing: -0.5px;
+    }
+    #welcome-screen .w-subtitle {
+      font-size: 0.95rem;
+      color: #666;
+      margin: 0 0 2rem;
+    }
+    #welcome-screen .w-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem 1.5rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid #e5e7eb;
+    }
+    #welcome-screen .w-card h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #2d5016;
+      margin: 0 0 0.75rem;
+    }
+    #welcome-screen .w-desc {
+      font-size: 0.9rem;
+      color: #666;
+      line-height: 1.55;
+      margin-bottom: 1.75rem;
+    }
+    #welcome-screen .w-btn {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, #2d5016 0%, #5a8f3a 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(45,80,22,0.2);
+    }
+    #welcome-screen .w-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(45,80,22,0.3);
+    }
+    #welcome-screen .w-btn:active { transform: scale(0.98); }
+    #welcome-screen .w-btn:disabled {
+      background: #999;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+    #welcome-screen .w-features {
+      margin-top: 1.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    #welcome-screen .w-feature {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: #444;
+    }
+    #welcome-screen .w-feature-icon {
+      font-size: 1.25rem;
+      flex: none;
+    }
+    #welcome-screen .w-foot {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #999;
+    }
+    .app-container-hidden { display: none !important; }
+
+    /* ===== App Header ===== */
+    .app-header {
+      background: #2d5016;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .app-header h1 { font-size: 1.1rem; margin: 0; font-weight: 700; }
+    .app-header .hdr-btn {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* ===== App Container ===== */
+    .container {
+      padding: 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+      padding-bottom: 100px;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #2d5016;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* ===== Inputs ===== */
+    .input-group { margin-bottom: 1rem; }
+    .input-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.35rem;
+    }
+    .input-group label.required::after { content: " *"; color: #dc2626; }
+    input[type="text"], input[type="date"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: 0.65rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: white;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2d5016;
+      box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
+    }
+
+    /* ===== Checkbox / Radio Groups ===== */
+    .checkbox-group, .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .checkbox-group label, .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 400;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .checkbox-group label:hover, .radio-group label:hover { background: #f3f4f6; }
+    input[type="checkbox"], input[type="radio"] {
+      width: 1.15rem;
+      height: 1.15rem;
+      accent-color: #2d5016;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ===== Buttons ===== */
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      flex: 1;
+      padding: 0.85rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, #2d5016 0%, #5a8f3a 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(45,80,22,0.2);
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .info-note {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+      display: block;
+    }
+    .conditional-input { display: none; margin-top: 0.5rem; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 9999;
+      transition: opacity 0.3s;
+      max-width: 90%;
+      text-align: center;
+    }
+    .toast.success { background: #2d5016; }
+    .toast.error { background: #dc2626; }
+  </style>
+</head>
+<body>
+
+<!-- ========== WELCOME SCREEN ========== -->
+<div id="welcome-screen">
+  <img class="w-logo" src="./logo-awb.png" alt="Agri Wangi Berry">
+  <h1 class="w-title">LKS GH 1</h1>
+  <p class="w-subtitle">PT. Agri Wangi Berry · Ciwidey</p>
+
+  <div class="w-card">
+    <h2>👋 Selamat Datang</h2>
+    <p class="w-desc">
+      Aplikasi untuk mencatat <b>kegiatan harian GH 1</b>, <b>panen</b>, <b>grading</b>, dan <b>laporan grower</b>.
+      Data otomatis tersimpan di perangkat & tersinkron ke Google Sheet.
+    </p>
+
+    <button id="welcome-btn" class="w-btn" onclick="welcomeConnect()">🔗 Sambung &amp; Mulai</button>
+
+    <div class="w-features">
+      <div class="w-feature">
+        <span class="w-feature-icon">📱</span>
+        <span>Tanpa daftar — langsung pakai</span>
+      </div>
+      <div class="w-feature">
+        <span class="w-feature-icon">☁️</span>
+        <span>Sinkron otomatis ke Google Sheet</span>
+      </div>
+      <div class="w-feature">
+        <span class="w-feature-icon">📶</span>
+        <span>Bisa dipakai offline — data aman</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="w-foot">v1.0.0 · Diinstall sebagai app dari browser</div>
+</div>
+
+<!-- ========== APP HEADER ========== -->
+<header class="app-header app-container-hidden" id="app-header">
+  <h1>📝 LKS GH 1</h1>
+  <button class="hdr-btn" onclick="syncWithGoogleSheet()">🔄 Sync</button>
+</header>
+
+<!-- ========== APP CONTAINER ========== -->
+<div class="container app-container-hidden" id="app-container">
+  <form id="form-lks-gh1" onsubmit="event.preventDefault(); simpanDataLksGH1();">
+
+    <!-- BAGIAN 1: IDENTITAS -->
+    <div class="card">
+      <div class="card-title">Bagian 1: Identitas</div>
+      <div class="input-group">
+        <label class="required">Tanggal</label>
+        <input type="date" id="glks-tanggal" required>
+      </div>
+      <div class="input-group">
+        <label class="required">Nama Lengkap</label>
+        <select id="glks-nama" required>
+          <option value="">Pilih Nama...</option>
+          <option value="AGYL ADNYA">AGYL ADNYA</option>
+          <option value="DEDEP SAPUTRA">DEDEP SAPUTRA</option>
+          <option value="LINDA">LINDA</option>
+          <option value="INDRA RUGIANA">INDRA RUGIANA</option>
+          <option value="MUHAMAD HILMI">MUHAMAD HILMI</option>
+          <option value="NESTI NURHAYATI">NESTI NURHAYATI</option>
+          <option value="SULTAN">SULTAN</option>
+          <option value="RIFQI SEPTIANI">RIFQI SEPTIANI</option>
+          <option value="RIDA">RIDA</option>
+          <option value="RANDI">RANDI</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- BAGIAN 2: PANEN -->
+    <div class="card">
+      <div class="card-title">Bagian 2: Panen Hari Ini</div>
+      <div class="input-group">
+        <label class="required">Apakah hari ini panen?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-panen" value="Panen" onchange="toggleConditionalInputs()"> Panen</label>
+          <label><input type="radio" name="glks-panen" value="Tidak Panen" onchange="toggleConditionalInputs()"> Tidak Panen</label>
+          <label><input type="radio" name="glks-panen" value="Yang lain:" onchange="toggleConditionalInputs()"> Yang lain:</label>
+        </div>
+        <input type="text" id="glks-panen-lainnya" class="conditional-input" placeholder="Sebutkan...">
+      </div>
+    </div>
+
+    <!-- BAGIAN 3: GRADING -->
+    <div class="card">
+      <div class="card-title">Bagian 3: Grading</div>
+      <div class="input-group">
+        <label class="required">Kegiatan Grading</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-grading" value="Grading Panen"> Grading Panen</label>
+          <label><input type="radio" name="glks-grading" value="Bantu Grading Panen"> Bantu Grading Panen</label>
+          <label><input type="radio" name="glks-grading" value="Tidak Grading"> Tidak Grading</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 4: JENIS KEGIATAN UTAMA -->
+    <div class="card">
+      <div class="card-title">Bagian 4: Jenis Kegiatan Utama</div>
+      <div class="input-group">
+        <label>Pilih Kegiatan (Bisa lebih dari satu)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="GENERAL PRUNING"> GENERAL PRUNING</label>
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="PRUNING DAUN"> PRUNING DAUN</label>
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="PRUNING SULUR"> PRUNING SULUR</label>
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="PRUNING TUNAS AIR DAN CUKUP"> PRUNING TUNAS AIR DAN CUKUP</label>
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="PRUNING BUNGA DAN BUAH"> PRUNING BUNGA DAN BUAH</label>
+          <label><input type="checkbox" name="glks-kegiatan-utama" value="Yang lain:" onchange="toggleConditionalInputs()"> Yang lain:</label>
+        </div>
+        <input type="text" id="glks-kegiatan-utama-lainnya" class="conditional-input" placeholder="Sebutkan...">
+      </div>
+    </div>
+
+    <!-- BAGIAN 5: HASIL KERJA UTAMA -->
+    <div class="card">
+      <div class="card-title">Bagian 5: Hasil Kerja Per ROW (Kegiatan Utama)</div>
+      <div class="input-group">
+        <label class="required">Jabarkan hasil kerja per baris</label>
+        <textarea id="glks-hasil-utama" rows="3" placeholder="Contoh: General Pruning 3 row, Pruning Bunga dan Buah 5 row"></textarea>
+      </div>
+    </div>
+
+    <!-- BAGIAN 6: HASIL KERJA LAINNYA -->
+    <div class="card">
+      <div class="card-title">Bagian 6: Hasil Kerja Per ROW (Kegiatan Lainnya)</div>
+      <div class="input-group">
+        <label>Jabarkan hasil kerja per baris (jika ada)</label>
+        <textarea id="glks-hasil-lainnya" rows="3" placeholder="Contoh: Rebound Buah 3 row"></textarea>
+      </div>
+    </div>
+
+    <!-- BAGIAN 7: SPRAY -->
+    <div class="card">
+      <div class="card-title">Bagian 7: Spray Chemical / Spray Foliar</div>
+      <div class="input-group">
+        <label>Jumlah Bay yang di Spray</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="glks-spray" value="BAY 1 - 10"> BAY 1 - 10</label>
+          <label><input type="checkbox" name="glks-spray" value="BAY 1 - 5"> BAY 1 - 5</label>
+          <label><input type="checkbox" name="glks-spray" value="BAY 6 - 10"> BAY 6 - 10</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 8: POPULASI -->
+    <div class="card">
+      <div class="card-title">Bagian 8: Perhitungan Populasi</div>
+      <div class="input-group">
+        <label>Jumlah Populasi (Jabarkan per ROW Zona 1 dan Zona 2)</label>
+        <textarea id="glks-populasi" rows="2" placeholder="Masukkan jumlah populasi..."></textarea>
+      </div>
+    </div>
+
+    <!-- BAGIAN 9: OPERASI SEMUT -->
+    <div class="card">
+      <div class="card-title">Bagian 9: Operasi Semut</div>
+      <div class="input-group">
+        <label>Status Operasi Semut (Seluruh Area GH 1)</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-semut" value="SELESAI"> SELESAI</label>
+          <label><input type="radio" name="glks-semut" value="TIDAK SELESAI"> TIDAK SELESAI</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 10: SANITASI TRANSIT -->
+    <div class="card">
+      <div class="card-title">Bagian 10: Sanitasi Ruang Transit dan Steril</div>
+      <div class="input-group">
+        <label>Status Sanitasi</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-sanitasi-transit" value="SELESAI"> SELESAI</label>
+          <label><input type="radio" name="glks-sanitasi-transit" value="TIDAK SELESAI"> TIDAK SELESAI</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 11: SANITASI GH -->
+    <div class="card">
+      <div class="card-title">Bagian 11: Sanitasi GH</div>
+      <div class="input-group">
+        <label>Cakupan Sanitasi</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-sanitasi-gh" value="1 - 5 BAY"> 1 - 5 BAY</label>
+          <label><input type="radio" name="glks-sanitasi-gh" value="6 - 10 BAY"> 6 - 10 BAY</label>
+          <label><input type="radio" name="glks-sanitasi-gh" value="1 - 10 BAY"> 1 - 10 BAY</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 12: SENSUS TANAMAN -->
+    <div class="card">
+      <div class="card-title">Bagian 12: Sensus Tanaman Berhama dan Berpenyakit</div>
+      <div class="input-group">
+        <label>Jabarkan per ROW dengan jumlah terkendali HPT</label>
+        <textarea id="glks-sensus" rows="3" placeholder="Contoh: Row 1-5 terkendali 10 tanaman..."></textarea>
+      </div>
+    </div>
+
+    <!-- BAGIAN 13: KEGIATAN LAINNYA -->
+    <div class="card">
+      <div class="card-title">Bagian 13: Kegiatan Lainnya</div>
+      <div class="input-group">
+        <label>Pilih Kegiatan Tambahan (Jika ada)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SPRAYING CHEMICAL (PESTISIDA)"> SPRAYING CHEMICAL (PESTISIDA)</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SPRAYING FOLIAR"> SPRAYING FOLIAR</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SPRAYING CHEMICAL & SPRAYING FOLIAR"> SPRAYING CHEMICAL & SPRAYING FOLIAR</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="PENGOCOORAN"> PENGOCOORAN</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="PERHITUNGAN POPULASI"> PERHITUNGAN POPULASI</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="OPERASI SEMUT"> OPERASI SEMUT</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SANITASI RUANG TRANSIT DAN STERIL"> SANITASI RUANG TRANSIT DAN STERIL</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SANITASI GH"> SANITASI GH</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="SENSUS TANAMAN TERKENA HPT"> SENSUS TANAMAN TERKENA HPT</label>
+          <label><input type="checkbox" name="glks-kegiatan-lainnya" value="Yang lain:" onchange="toggleConditionalInputs()"> Yang lain:</label>
+        </div>
+        <input type="text" id="glks-kegiatan-lainnya-text" class="conditional-input" placeholder="Sebutkan...">
+      </div>
+    </div>
+
+    <!-- BAGIAN 14: KENDALA & TEMUAN -->
+    <div class="card">
+      <div class="card-title">Bagian 14: Deskripsi Kendala & Temuan HPT</div>
+      <div class="input-group">
+        <label>Deskripsi Kendala</label>
+        <textarea id="glks-kendala" rows="2" placeholder="Tulis kendala..."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Temuan HPT / Kendala GH 1</label>
+        <input type="text" id="glks-temuan" placeholder="Deskripsi temuan">
+        <span class="info-note">Catatan: Fitur upload file diganti menjadi input teks karena keterbatasan PWA.</span>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">💾 Simpan & Sinkron LKS</button>
+      <button type="button" class="btn btn-secondary" onclick="resetFormLksGH1()">🔄 Reset Form</button>
+    </div>
+  </form>
+</div>
+
+<script src="./core.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
