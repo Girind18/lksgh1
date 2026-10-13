@@ -1,13 +1,14 @@
 // ========== CORE.JS ==========
 
 // 1. TANAM LINK DEPLOY DI SINI
-// Ganti URL di bawah ini dengan URL Web App dari Google Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyYj6xS_O4vNaYR0FF6BRcUlFnjlWxfZxsHh5sUWQUVN9EIcU3_bYYMlJ-heY80J2HK/exec';
+// ⚠️ WAJIB GANTI dengan URL Web App dari Google Apps Script Anda
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCJNxoKQQO2BRbwlAgd4XAK7STkM4WvcTICaHNjpJsG0qU5o9_NaSDb_tbTwDcSVlO/exec';
 
 // 2. KONFIGURASI STORAGE
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
 const DATA_KEY = 'awb_gh1_data_v1';
 const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
+const QUEUE_KEY = 'awb_gh1_queue_v1';
 
 // 3. FUNGSI WELCOME CONNECT
 async function welcomeConnect() {
@@ -30,36 +31,104 @@ async function welcomeConnect() {
   }
 }
 
-// 4. FUNGSI SINKRONISASI KE GOOGLE SHEETS
+// 4. FUNGSI SINKRONISASI (GET — ambil data dari Sheet)
 async function syncWithGoogleSheet(isInitial = false) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
 
-  const response = await fetch(SCRIPT_URL, {
+  console.log('📡 GET dari:', SCRIPT_URL);
+
+  const response = await fetch(SCRIPT_URL + '?t=' + Date.now(), {
     method: 'GET',
-    headers: { 'Accept': 'application/json' }
+    redirect: 'follow'
   });
 
-  if (!response.ok) throw new Error('Response server tidak OK');
+  console.log('📡 Status:', response.status);
 
-  const data = await response.json();
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+
+  const text = await response.text();
+  console.log('📡 Response:', text.substring(0, 300));
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error('Response bukan JSON: ' + text.substring(0, 200));
+  }
+
   localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  console.log('Data berhasil disinkronkan:', data);
   return data;
 }
 
-// 5. FUNGSI MENGIRIM DATA LKS KE GOOGLE SHEETS
+// 5. FUNGSI KIRIM DATA LKS KE SHEET (POST — FIXED)
 async function kirimLksKeSheet(payload) {
-  if (!navigator.onLine) throw new Error('Offline');
+  if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
+
+  console.log('📤 POST ke:', SCRIPT_URL);
+  console.log('📦 Payload:', payload);
+
   const response = await fetch(SCRIPT_URL, {
     method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
   });
-  return true;
+
+  console.log('📥 Status:', response.status);
+
+  if (!response.ok) {
+    throw new Error('HTTP ' + response.status);
+  }
+
+  const text = await response.text();
+  console.log('📥 Response body:', text);
+
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    throw new Error('Response bukan JSON: ' + text.substring(0, 200));
+  }
+
+  if (result.status !== 'success') {
+    throw new Error(result.message || 'Server menolak data');
+  }
+
+  console.log('✅ Berhasil disimpan ke Sheet');
+  return result;
 }
 
-// 6. FUNGSI MENAMPILKAN APLIKASI
+// 6. FUNGSI QUEUE — simpan payload jika gagal kirim
+function pushToQueue(payload) {
+  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  q.push(payload);
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+}
+
+async function flushQueue() {
+  const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  if (q.length === 0) return;
+
+  console.log('🔄 Mengirim ' + q.length + ' data dari queue...');
+  const remaining = [];
+
+  for (const item of q) {
+    try {
+      await kirimLksKeSheet(item);
+    } catch (err) {
+      console.warn('Gagal kirim queue item:', err);
+      remaining.push(item);
+    }
+  }
+
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
+  if (remaining.length === 0) {
+    showToast('✅ Semua data queue berhasil tersinkron!', 'success');
+  }
+}
+
+// 7. FUNGSI MENAMPILKAN APLIKASI
 function showApp() {
   const welcomeScreen = document.getElementById('welcome-screen');
   const appHeader = document.getElementById('app-header');
@@ -73,7 +142,7 @@ function showApp() {
   }, 300);
 }
 
-// 7. FUNGSI TOAST NOTIFIKASI
+// 8. FUNGSI TOAST
 function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
@@ -89,14 +158,13 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// 8. GENERATE ID UNIK
+// 9. GENERATE ID UNIK
 function generateId() {
   return String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
 }
 
-// 9. LOGIKA KONDISIONAL (Toggle Input "Yang Lain")
+// 10. TOGGLE INPUT KONDISIONAL ("Yang Lain")
 function toggleConditionalInputs() {
-  // Panen Lainnya
   const panenLainnya = document.querySelector('input[name="glks-panen"][value="Yang lain:"]');
   const panenInput = document.getElementById('glks-panen-lainnya');
   if (panenLainnya && panenInput) {
@@ -104,7 +172,6 @@ function toggleConditionalInputs() {
     if (!panenLainnya.checked) panenInput.value = '';
   }
 
-  // Kegiatan Utama Lainnya
   const kegUtamaLainnya = document.querySelector('input[name="glks-kegiatan-utama"][value="Yang lain:"]');
   const kegUtamaInput = document.getElementById('glks-kegiatan-utama-lainnya');
   if (kegUtamaLainnya && kegUtamaInput) {
@@ -112,7 +179,6 @@ function toggleConditionalInputs() {
     if (!kegUtamaLainnya.checked) kegUtamaInput.value = '';
   }
 
-  // Kegiatan Lainnya (Bagian 13)
   const kegLainnya = document.querySelector('input[name="glks-kegiatan-lainnya"][value="Yang lain:"]');
   const kegLainnyaInput = document.getElementById('glks-kegiatan-lainnya-text');
   if (kegLainnya && kegLainnyaInput) {
@@ -121,7 +187,7 @@ function toggleConditionalInputs() {
   }
 }
 
-// 10. KUMPULKAN DATA FORM
+// 11. KUMPULKAN DATA FORM
 function collectLksGH1Data() {
   const getCheckedValues = (name) => {
     return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
@@ -161,7 +227,7 @@ function collectLksGH1Data() {
   };
 }
 
-// 11. SIMPAN DATA LKS GH 1
+// 12. SIMPAN DATA LKS GH 1
 async function simpanDataLksGH1() {
   const data = collectLksGH1Data();
 
@@ -170,25 +236,26 @@ async function simpanDataLksGH1() {
     return;
   }
 
-  // Simpan ke LocalStorage
+  // Simpan ke LocalStorage dulu (agar tidak hilang)
   let db = JSON.parse(localStorage.getItem(LKS_STORAGE_KEY) || '[]');
   db.push(data);
   localStorage.setItem(LKS_STORAGE_KEY, JSON.stringify(db));
 
   showToast('⏳ Menyimpan ke server...', 'success');
 
-  // Kirim ke Google Sheets
   try {
     await kirimLksKeSheet(data);
     showToast('✅ LKS GH 1 berhasil disimpan & disinkronkan!', 'success');
     resetFormLksGH1();
   } catch (error) {
-    console.error('Sync error:', error);
-    showToast('⚠️ Tersimpan lokal. Gagal sync ke server.', 'error');
+    console.error('❌ Sync error:', error);
+    // Simpan ke queue untuk dicoba ulang nanti
+    pushToQueue(data);
+    showToast('⚠️ Gagal sync: ' + error.message, 'error');
   }
 }
 
-// 12. RESET FORM
+// 13. RESET FORM
 function resetFormLksGH1() {
   const form = document.getElementById('form-lks-gh1');
   if (form) form.reset();
