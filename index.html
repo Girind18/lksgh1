@@ -97,6 +97,10 @@
       border-radius: 8px; font-size: 0.95rem; font-family: inherit;
       background: white; transition: border-color 0.2s;
     }
+    input[type="file"] {
+      width: 100%; padding: 0.5rem; border: 1.5px dashed #d1d5db;
+      border-radius: 8px; font-size: 0.9rem; background: #f9fafb;
+    }
     input:focus, select:focus, textarea:focus {
       outline: none; border-color: #2d5016;
       box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
@@ -117,7 +121,7 @@
       cursor: pointer; flex-shrink: 0;
     }
 
-    /* Activity Block (untuk kegiatan dengan sub-pilihan row) */
+    /* Activity Block */
     .activity-block {
       border: 1px solid #e5e7eb; border-radius: 8px;
       padding: 0.75rem; margin-bottom: 0.5rem; background: #f9fafb;
@@ -144,7 +148,7 @@
       color: #4b5563; margin-bottom: 0.25rem; margin-top: 0.5rem;
     }
     .activity-sub label:first-child { margin-top: 0; }
-    .activity-sub input, .activity-sub select {
+    .activity-sub input, .activity-sub select, .activity-sub textarea {
       padding: 0.5rem; font-size: 0.85rem;
     }
     .spray-sub {
@@ -173,6 +177,13 @@
 
     .info-note { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; display: block; }
     .conditional-input { display: none; margin-top: 0.5rem; }
+    .foto-preview {
+      margin-top: 0.5rem; text-align: center;
+    }
+    .foto-preview img {
+      max-width: 100%; max-height: 200px;
+      border-radius: 8px; border: 1px solid #e5e7eb;
+    }
 
     /* Toast */
     .toast {
@@ -218,7 +229,7 @@
     </div>
   </div>
 
-  <div class="w-foot">v2.0.0 · Diinstall sebagai app dari browser</div>
+  <div class="w-foot">v2.2.0 · Diinstall sebagai app dari browser</div>
 </div>
 
 <!-- ========== APP HEADER ========== -->
@@ -231,9 +242,9 @@
 <div class="container app-container-hidden" id="app-container">
   <form id="form-lks-gh1" onsubmit="event.preventDefault(); simpanDataLksGH1();">
 
-    <!-- BAGIAN 1: IDENTITAS -->
+    <!-- IDENTITAS -->
     <div class="card">
-      <div class="card-title">Bagian 1: Identitas</div>
+      <div class="card-title">📋 Identitas</div>
       <div class="input-group">
         <label class="required">Tanggal</label>
         <input type="date" id="glks-tanggal" required>
@@ -256,9 +267,9 @@
       </div>
     </div>
 
-    <!-- BAGIAN 2: PANEN -->
+    <!-- PANEN HARI INI -->
     <div class="card">
-      <div class="card-title">Bagian 2: Panen Hari Ini</div>
+      <div class="card-title">🌾 Panen Hari Ini</div>
       <div class="input-group">
         <label class="required">Apakah hari ini panen?</label>
         <div class="radio-group">
@@ -270,9 +281,9 @@
       </div>
     </div>
 
-    <!-- BAGIAN 3: GRADING -->
+    <!-- GRADING -->
     <div class="card">
-      <div class="card-title">Bagian 3: Grading</div>
+      <div class="card-title">🍎 Grading</div>
       <div class="input-group">
         <label class="required">Kegiatan Grading</label>
         <div class="radio-group">
@@ -283,85 +294,36 @@
       </div>
     </div>
 
-    <!-- BAGIAN 4: JENIS KEGIATAN UTAMA (dengan sub-pilihan ROW) -->
+    <!-- JENIS KEGIATAN UTAMA -->
     <div class="card">
-      <div class="card-title">Bagian 4: Jenis Kegiatan Utama</div>
+      <div class="card-title">✂️ Jenis Kegiatan Utama</div>
       <div class="input-group">
         <label>Pilih Kegiatan (Bisa lebih dari satu). Centang → pilih jumlah ROW.</label>
         <div id="glks-kegiatan-utama-container"></div>
       </div>
     </div>
 
-    <!-- BAGIAN 13: KEGIATAN LAINNYA (dengan sub-pilihan ROW + Spray Sub-Form) -->
+    <!-- KEGIATAN LAINNYA -->
     <div class="card">
-      <div class="card-title">Bagian 13: Kegiatan Lainnya</div>
+      <div class="card-title">🧰 Kegiatan Lainnya</div>
       <div class="input-group">
-        <label>Pilih Kegiatan Tambahan (Jika ada). Centang → pilih jumlah ROW.</label>
+        <label>Pilih Kegiatan Tambahan (Jika ada). Centang untuk isi detail.</label>
         <div id="glks-kegiatan-lainnya-container"></div>
       </div>
     </div>
 
-    <!-- BAGIAN 8: PERHITUNGAN POPULASI -->
+    <!-- DESKRIPSI KENDALA & TEMUAN HPT + FOTO -->
     <div class="card">
-      <div class="card-title">Bagian 8: Perhitungan Populasi</div>
-      <div class="input-group">
-        <label>Jumlah Populasi (Jabarkan per ROW Zona 1 dan Zona 2)</label>
-        <textarea id="glks-populasi" rows="2" placeholder="Masukkan jumlah populasi..."></textarea>
-      </div>
-    </div>
-
-    <!-- BAGIAN 9: OPERASI SEMUT -->
-    <div class="card">
-      <div class="card-title">Bagian 9: Operasi Semut</div>
-      <div class="input-group">
-        <label>Status Operasi Semut (Seluruh Area GH 1)</label>
-        <div class="radio-group">
-          <label><input type="radio" name="glks-semut" value="SELESAI"> SELESAI</label>
-          <label><input type="radio" name="glks-semut" value="TIDAK SELESAI"> TIDAK SELESAI</label>
-        </div>
-      </div>
-    </div>
-
-    <!-- BAGIAN 10: SANITASI TRANSIT -->
-    <div class="card">
-      <div class="card-title">Bagian 10: Sanitasi Ruang Transit dan Steril</div>
-      <div class="input-group">
-        <label>Status Sanitasi</label>
-        <div class="radio-group">
-          <label><input type="radio" name="glks-sanitasi-transit" value="SELESAI"> SELESAI</label>
-          <label><input type="radio" name="glks-sanitasi-transit" value="TIDAK SELESAI"> TIDAK SELESAI</label>
-        </div>
-      </div>
-    </div>
-
-    <!-- BAGIAN 11: SANITASI GH -->
-    <div class="card">
-      <div class="card-title">Bagian 11: Sanitasi GH</div>
-      <div class="input-group">
-        <label>Cakupan Sanitasi</label>
-        <div class="radio-group">
-          <label><input type="radio" name="glks-sanitasi-gh" value="1 - 5 BAY"> 1 - 5 BAY</label>
-          <label><input type="radio" name="glks-sanitasi-gh" value="6 - 10 BAY"> 6 - 10 BAY</label>
-          <label><input type="radio" name="glks-sanitasi-gh" value="1 - 10 BAY"> 1 - 10 BAY</label>
-        </div>
-      </div>
-    </div>
-
-    <!-- BAGIAN 12: SENSUS TANAMAN -->
-    <div class="card">
-      <div class="card-title">Bagian 12: Sensus Tanaman Berhama dan Berpenyakit</div>
-      <div class="input-group">
-        <label>Jabarkan per ROW dengan jumlah terkendali HPT</label>
-        <textarea id="glks-sensus" rows="3" placeholder="Contoh: Row 1-5 terkendali 10 tanaman..."></textarea>
-      </div>
-    </div>
-
-    <!-- BAGIAN 14: KENDALA & TEMUAN -->
-    <div class="card">
-      <div class="card-title">Bagian 14: Deskripsi Kendala & Temuan HPT</div>
+      <div class="card-title">⚠️ Deskripsi Kendala &amp; Temuan HPT</div>
       <div class="input-group">
         <label>Deskripsi Kendala</label>
         <textarea id="glks-kendala" rows="2" placeholder="Tulis kendala..."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Upload Foto Kendala (Opsional)</label>
+        <input type="file" id="glks-kendala-foto" accept="image/*" capture="environment">
+        <div class="foto-preview" id="foto-preview"></div>
+        <span class="info-note">Foto akan otomatis tersimpan ke Google Drive saat sync.</span>
       </div>
       <div class="input-group">
         <label>Temuan HPT / Kendala GH 1</label>
@@ -370,7 +332,7 @@
     </div>
 
     <div class="btn-group">
-      <button type="submit" class="btn btn-primary">💾 Simpan & Sinkron LKS</button>
+      <button type="submit" class="btn btn-primary">💾 Simpan &amp; Sinkron LKS</button>
       <button type="button" class="btn btn-secondary" onclick="resetFormLksGH1()">🔄 Reset Form</button>
     </div>
   </form>
