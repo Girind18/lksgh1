@@ -1,7 +1,7 @@
 // ========== CORE.JS ==========
 
 // ⚠️ WAJIB GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzr3gEC_LzljqdhYNUxUCNqWxC0ObpbUmJaITNarll7UrYM9_5E4ZMHs6W5RDHNS8-BSg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
@@ -17,14 +17,6 @@ const KEGIATAN_UTAMA = [
   'PRUNING BUNGA DAN BUAH'
 ];
 
-// sub types:
-//  'spray_bay'      = BAY 1-5 / BAY 6-10 + Detail Spray (Bahan Aktif, Dosis, Pemakaian Air)
-//  'pengocoran'     = Bahan Aktif, Dosis, Pemakaian Air, Aplikasi Berapa ml
-//  'row'            = Jumlah ROW
-//  'text'           = Text manual
-//  'radio_selesai'  = SELESAI / TIDAK SELESAI
-//  'radio_bay'      = BAY 1-5 / BAY 6-10
-//  'sensus'         = Row + Jumlah Tanaman Terinfeksi
 const KEGIATAN_LAINNYA = [
   { key: 'SPRAYING CHEMICAL (PESTISIDA)', sub: 'spray_bay' },
   { key: 'SPRAYING FOLIAR', sub: 'spray_bay' },
@@ -94,7 +86,6 @@ function renderKegiatanLainnya() {
     let subContent = '';
 
     if (item.sub === 'spray_bay') {
-      // BAY 1-5 / BAY 6-10 + Detail Spray
       subContent = `
         <label>Cakupan BAY</label>
         <div class="radio-group" style="margin-top:0.25rem">
@@ -177,7 +168,6 @@ function renderKegiatanLainnya() {
     `;
   }).join('');
 
-  // "Yang lain:" untuk Kegiatan Lainnya
   html += `
     <div class="activity-block" id="block-kl-lain">
       <label class="activity-head">
@@ -404,7 +394,6 @@ function collectLksGH1Data() {
     return el ? el.value : '';
   };
 
-  // Kegiatan Utama
   const kegiatanUtama = [];
   document.querySelectorAll('#glks-kegiatan-utama-container .activity-block').forEach(block => {
     const cb = block.querySelector('input[type="checkbox"]');
@@ -427,7 +416,6 @@ function collectLksGH1Data() {
     if (nama) kegiatanUtama.push({ kegiatan: nama, row: row });
   });
 
-  // Kegiatan Lainnya
   const kegiatanLainnya = [];
   document.querySelectorAll('#glks-kegiatan-lainnya-container .activity-block').forEach(block => {
     const cb = block.querySelector('input[type="checkbox"]');
@@ -441,7 +429,6 @@ function collectLksGH1Data() {
       result.kegiatan = key;
 
       if (sub === 'spray_bay') {
-        // BAY 1-5 / BAY 6-10 + Detail Spray
         const radio = block.querySelector('input[type="radio"]:checked');
         const b = block.querySelector(`input[data-spray-bahan="${key}"]`);
         const d = block.querySelector(`input[data-spray-dosis="${key}"]`);
@@ -451,7 +438,6 @@ function collectLksGH1Data() {
         result.dosis = d ? d.value : '';
         result.air = a ? a.value : '';
       } else if (sub === 'pengocoran') {
-        // Bahan Aktif, Dosis, Pemakaian Air, Aplikasi Berapa ml
         const b = block.querySelector(`input[data-kocor-bahan="${key}"]`);
         const d = block.querySelector(`input[data-kocor-dosis="${key}"]`);
         const a = block.querySelector(`input[data-kocor-air="${key}"]`);
@@ -476,7 +462,6 @@ function collectLksGH1Data() {
         result.jumlahTanaman = jmlIn ? jmlIn.value : '';
       }
     } else {
-      // Yang lain
       const namaInput = block.querySelector('#glks-kegiatan-lainnya-text');
       result.kegiatan = namaInput ? namaInput.value : '';
       const sel = block.querySelector(`select[data-row-lainnya="__LAINNYA__"]`);
