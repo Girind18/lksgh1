@@ -1,7 +1,7 @@
 // ========== CORE.JS ==========
 
 // ⚠️ WAJIB GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymjr5zUTizUatYEaiYAOosVMHB6FThU4fJmRyrEQJGFW4XOQorr2ABuPJwuEv4IYQ6DQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
@@ -17,11 +17,18 @@ const KEGIATAN_UTAMA = [
   'PRUNING BUNGA DAN BUAH'
 ];
 
-// type sub: 'spray' | 'row' | 'text' | 'radio_selesai' | 'radio_bay' | 'sensus'
+// sub types:
+//  'spray_bay'      = BAY 1-5 / BAY 6-10 + Detail Spray (Bahan Aktif, Dosis, Pemakaian Air)
+//  'pengocoran'     = Bahan Aktif, Dosis, Pemakaian Air, Aplikasi Berapa ml
+//  'row'            = Jumlah ROW
+//  'text'           = Text manual
+//  'radio_selesai'  = SELESAI / TIDAK SELESAI
+//  'radio_bay'      = BAY 1-5 / BAY 6-10
+//  'sensus'         = Row + Jumlah Tanaman Terinfeksi
 const KEGIATAN_LAINNYA = [
-  { key: 'SPRAYING CHEMICAL (PESTISIDA)', sub: 'spray' },
-  { key: 'SPRAYING FOLIAR', sub: 'spray' },
-  { key: 'PENGOCOORAN', sub: 'row' },
+  { key: 'SPRAYING CHEMICAL (PESTISIDA)', sub: 'spray_bay' },
+  { key: 'SPRAYING FOLIAR', sub: 'spray_bay' },
+  { key: 'PENGOCOORAN', sub: 'pengocoran' },
   { key: 'PERHITUNGAN POPULASI', sub: 'text' },
   { key: 'OPERASI SEMUT', sub: 'radio_selesai' },
   { key: 'SANITASI RUANG TRANSIT DAN STERIL', sub: 'radio_selesai' },
@@ -86,13 +93,14 @@ function renderKegiatanLainnya() {
     const safeId = 'kl-' + idx;
     let subContent = '';
 
-    if (item.sub === 'spray') {
+    if (item.sub === 'spray_bay') {
+      // BAY 1-5 / BAY 6-10 + Detail Spray
       subContent = `
-        <label>Jumlah ROW</label>
-        <select data-row-lainnya="${item.key}">
-          <option value="">Pilih jumlah row...</option>
-          ${ROW_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
-        </select>
+        <label>Cakupan BAY</label>
+        <div class="radio-group" style="margin-top:0.25rem">
+          <label><input type="radio" name="radio-${safeId}" value="BAY 1 - 5"> BAY 1 - 5</label>
+          <label><input type="radio" name="radio-${safeId}" value="BAY 6 - 10"> BAY 6 - 10</label>
+        </div>
         <div class="spray-sub">
           <div class="spray-title">🧪 Detail Spray</div>
           <label>Bahan Aktif</label>
@@ -101,6 +109,20 @@ function renderKegiatanLainnya() {
           <input type="text" data-spray-dosis="${item.key}" placeholder="Contoh: 1 ml/L">
           <label>Pemakaian Air</label>
           <input type="text" data-spray-air="${item.key}" placeholder="Contoh: 200 L">
+        </div>
+      `;
+    } else if (item.sub === 'pengocoran') {
+      subContent = `
+        <div class="spray-sub">
+          <div class="spray-title">💧 Detail Pengocoran</div>
+          <label>Bahan Aktif</label>
+          <input type="text" data-kocor-bahan="${item.key}" placeholder="Contoh: NPK 16-16-16">
+          <label>Dosis</label>
+          <input type="text" data-kocor-dosis="${item.key}" placeholder="Contoh: 5 gram/tanaman">
+          <label>Pemakaian Air</label>
+          <input type="text" data-kocor-air="${item.key}" placeholder="Contoh: 500 L">
+          <label>Aplikasi Berapa ml</label>
+          <input type="text" data-kocor-ml="${item.key}" placeholder="Contoh: 100 ml">
         </div>
       `;
     } else if (item.sub === 'row') {
@@ -356,7 +378,6 @@ function initFotoUpload() {
 
     kendalaPhotoName = file.name;
 
-    // Limit ukuran file 3MB
     if (file.size > 3 * 1024 * 1024) {
       showToast('⚠️ Ukuran foto maksimal 3MB', 'error');
       fotoInput.value = '';
@@ -419,15 +440,26 @@ function collectLksGH1Data() {
     if (key) {
       result.kegiatan = key;
 
-      if (sub === 'spray') {
-        const sel = block.querySelector(`select[data-row-lainnya="${key}"]`);
+      if (sub === 'spray_bay') {
+        // BAY 1-5 / BAY 6-10 + Detail Spray
+        const radio = block.querySelector('input[type="radio"]:checked');
         const b = block.querySelector(`input[data-spray-bahan="${key}"]`);
         const d = block.querySelector(`input[data-spray-dosis="${key}"]`);
         const a = block.querySelector(`input[data-spray-air="${key}"]`);
-        result.row = sel ? sel.value : '';
+        result.status = radio ? radio.value : '';
         result.bahanAktif = b ? b.value : '';
         result.dosis = d ? d.value : '';
         result.air = a ? a.value : '';
+      } else if (sub === 'pengocoran') {
+        // Bahan Aktif, Dosis, Pemakaian Air, Aplikasi Berapa ml
+        const b = block.querySelector(`input[data-kocor-bahan="${key}"]`);
+        const d = block.querySelector(`input[data-kocor-dosis="${key}"]`);
+        const a = block.querySelector(`input[data-kocor-air="${key}"]`);
+        const ml = block.querySelector(`input[data-kocor-ml="${key}"]`);
+        result.bahanAktif = b ? b.value : '';
+        result.dosis = d ? d.value : '';
+        result.air = a ? a.value : '';
+        result.aplikasiMl = ml ? ml.value : '';
       } else if (sub === 'row') {
         const sel = block.querySelector(`select[data-row-lainnya="${key}"]`);
         result.row = sel ? sel.value : '';
@@ -483,7 +515,6 @@ async function simpanDataLksGH1() {
   }
 
   let db = JSON.parse(localStorage.getItem(LKS_STORAGE_KEY) || '[]');
-  // Jangan simpan base64 foto di localStorage (bisa penuh)
   const dataForLocal = { ...data };
   delete dataForLocal.kendalaFotoData;
   db.push(dataForLocal);
