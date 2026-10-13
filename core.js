@@ -1,7 +1,7 @@
 // ========== CORE.JS - REALTIME SYNC ==========
 
 // ⚠️ GANTI dengan URL Web App dari Deploy Apps Script
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwX7WPIr0btvcXPwBBFK3ThfAcbDzePrqUbvzWotOa12uqgO5VFslP9pihvV7HDsFda/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyURVXX_foWU7VAKka6XOelIOLMgZY6MiIyljDvH_IIXouig2EjF2JYS9pp4xC9m7V6/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
