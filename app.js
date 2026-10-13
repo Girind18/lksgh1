@@ -1,13 +1,11 @@
 // ========== APP.JS ==========
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Set tanggal hari ini
   const tglInput = document.getElementById('glks-tanggal');
   if (tglInput) {
     tglInput.value = new Date().toISOString().split('T')[0];
   }
 
-  // Cek apakah sudah pernah welcome
   const isWelcomed = localStorage.getItem('awb_gh1_welcomed_v1');
 
   if (isWelcomed === '1') {
@@ -23,14 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('welcome-screen').classList.remove('hide');
   }
 
-  // Registrasi Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('✅ SW terdaftar:', reg.scope))
       .catch(err => console.error('❌ SW gagal:', err));
   }
 
-  // Listener Online/Offline
   window.addEventListener('online', () => {
     showToast('🌐 Kembali online, menyinkronkan...', 'success');
     syncWithGoogleSheet().catch(() => {});
