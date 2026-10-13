@@ -1,24 +1,24 @@
 // ========== APP.JS ==========
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Set tanggal hari ini secara default
+  // Set tanggal hari ini
   const tglInput = document.getElementById('glks-tanggal');
   if (tglInput) {
     tglInput.value = new Date().toISOString().split('T')[0];
   }
 
-  // Cek apakah user sudah pernah welcome sebelumnya
+  // Cek apakah sudah pernah welcome
   const isWelcomed = localStorage.getItem('awb_gh1_welcomed_v1');
 
   if (isWelcomed === '1') {
-    // Langsung tampilkan aplikasi
     document.getElementById('welcome-screen').classList.add('hide');
     document.getElementById('app-header').classList.remove('app-container-hidden');
     document.getElementById('app-container').classList.remove('app-container-hidden');
 
-    // Sync di background
     if (navigator.onLine) {
       syncWithGoogleSheet().catch(err => console.log('Auto-sync gagal:', err));
+      // Coba flush queue yang tertunda
+      setTimeout(() => flushQueue().catch(() => {}), 2000);
     }
   } else {
     document.getElementById('welcome-screen').classList.remove('hide');
@@ -27,16 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Registrasi Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker terdaftar:', reg.scope))
-      .catch(err => console.error('Service Worker gagal:', err));
+      .then(reg => console.log('✅ SW terdaftar:', reg.scope))
+      .catch(err => console.error('❌ SW gagal:', err));
   }
 
   // Listener Online/Offline
   window.addEventListener('online', () => {
-    showToast('Kembali online, menyinkronkan...', 'success');
+    showToast('🌐 Kembali online, menyinkronkan...', 'success');
     syncWithGoogleSheet().catch(() => {});
+    flushQueue().catch(() => {});
   });
+
   window.addEventListener('offline', () => {
-    showToast('Mode offline, data disimpan lokal', 'error');
+    showToast('📴 Mode offline, data disimpan lokal', 'error');
   });
 });
