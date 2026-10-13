@@ -1,7 +1,7 @@
 // ========== CORE.JS ==========
 
 // ⚠️ WAJIB GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymjr5zUTizUatYEaiYAOosVMHB6FThU4fJmRyrEQJGFW4XOQorr2ABuPJwuEv4IYQ6DQ/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
