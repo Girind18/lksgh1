@@ -1,7 +1,7 @@
 // ========== CORE.JS - REALTIME SYNC ==========
 
 // ⚠️ GANTI dengan URL Web App dari Deploy Apps Script
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyURVXX_foWU7VAKka6XOelIOLMgZY6MiIyljDvH_IIXouig2EjF2JYS9pp4xC9m7V6/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGTXFigEwHdZL1WHZTnuGiVRCJgCgomyFEFLATAZWEiL28ioQSAci3LYS5wTx7804/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
@@ -233,30 +233,27 @@ async function welcomeConnect() {
 // ========== GET ==========
 async function syncWithGoogleSheet(isInitial = false) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
-  if (isSyncing) return;
 
-  isSyncing = true;
-  try {
-    console.log('📡 GET sync dimulai...');
-    const response = await fetch(SCRIPT_URL + '?t=' + Date.now(), {
-      method: 'GET', redirect: 'follow'
-    });
+  console.log('📡 Sync via POST...');
+  const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'getAll' }),
+    redirect: 'follow'
+  });
 
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
 
-    const text = await response.text();
-    let data;
-    try { data = JSON.parse(text); }
-    catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
-
-    localStorage.setItem(DATA_KEY, JSON.stringify(data));
-    lastSyncTime = new Date();
-    updateSyncStatus();
-    console.log('✅ GET sync selesai. Total data:', data.count);
-    return data;
-  } finally {
-    isSyncing = false;
-  }
+  localStorage.setItem(DATA_KEY, JSON.stringify(data));
+  lastSyncTime = new Date();
+  updateSyncStatus();
+  console.log('✅ Sync selesai. Total:', data.count);
+  return data;
 }
 
 // ========== POST ==========
