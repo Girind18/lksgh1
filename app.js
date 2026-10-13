@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (navigator.onLine) {
       syncWithGoogleSheet().catch(err => console.log('Auto-sync gagal:', err));
-      // Coba flush queue yang tertunda
       setTimeout(() => flushQueue().catch(() => {}), 2000);
     }
   } else {
