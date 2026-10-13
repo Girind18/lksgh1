@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#2d5016">
-  <meta name="description" content="LKS GH 1 - Dashboard Kegiatan Grower">
+  <meta name="description" content="Laporan Hasil Kerja Grower GH 1 - AWB">
 
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="./logo-awb.png">
   <link rel="apple-touch-icon" href="./logo-awb.png">
 
-  <title>LKS GH 1 - AWB</title>
+  <title>Laporan Hasil Kerja Grower GH 1</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -29,7 +29,7 @@
     }
     #welcome-screen.hide { display: none; }
     #welcome-screen .w-logo { height: 80px; width: auto; margin-bottom: 1rem; }
-    #welcome-screen .w-title { font-size: 1.75rem; font-weight: 800; color: #2d5016; margin: 0 0 0.25rem; }
+    #welcome-screen .w-title { font-size: 1.5rem; font-weight: 800; color: #2d5016; margin: 0 0 0.35rem; line-height: 1.2; }
     #welcome-screen .w-subtitle { font-size: 0.95rem; color: #666; margin: 0 0 2rem; }
     #welcome-screen .w-card {
       background: white; border-radius: 16px; padding: 2rem 1.5rem;
@@ -78,11 +78,11 @@
     }
     .app-header .hdr-title-wrap { display: flex; flex-direction: column; min-width: 0; }
     .app-header h1 {
-      font-size: 0.9rem; margin: 0; font-weight: 700;
+      font-size: 0.85rem; margin: 0; font-weight: 700;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .app-header .hdr-sub {
-      font-size: 0.65rem; opacity: 0.85; margin-top: 1px;
+      font-size: 0.62rem; opacity: 0.85; margin-top: 1px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .app-header .hdr-btn {
@@ -100,7 +100,7 @@
     /* ===== HERO SECTION ===== */
     .hero {
       text-align: center;
-      padding: 1.5rem 1rem 1.25rem;
+      padding: 1.25rem 1rem 1.25rem;
       margin-bottom: 1rem;
       background: white;
       border-radius: 12px;
@@ -108,37 +108,36 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
-    /* Kotak logo dengan border rapi */
+    /* Logo full width dari kiri ke kanan kotak */
     .hero-logo-box {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 160px;
-      height: 100px;
+      width: 100%;
+      height: 120px;
       background: #ffffff;
       border: 1.5px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 8px;
-      margin: 0 auto 1rem;
+      border-radius: 10px;
+      padding: 6px;
+      margin: 0 0 1rem;
       box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
     }
     .hero-logo-box img {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       display: block;
     }
 
     .hero-title {
-      font-size: 1.85rem;
+      font-size: 1.35rem;
       font-weight: 900;
       color: #2d5016;
-      letter-spacing: -0.5px;
-      margin: 0 0 0.35rem;
-      line-height: 1.1;
+      letter-spacing: -0.3px;
+      margin: 0 0 0.4rem;
+      line-height: 1.25;
+      text-transform: uppercase;
     }
     .hero-sub {
       font-family: Georgia, "Times New Roman", serif;
@@ -283,7 +282,7 @@
 <!-- ========== WELCOME SCREEN ========== -->
 <div id="welcome-screen">
   <img class="w-logo" src="./logo-awb.png" alt="Agri Wangi Berry">
-  <h1 class="w-title">LKS GH 1</h1>
+  <h1 class="w-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
   <p class="w-subtitle">PT. Agri Wangi Berry</p>
 
   <div class="w-card">
@@ -311,7 +310,7 @@
     </div>
   </div>
 
-  <div class="w-foot">v2.3.3 · Diinstall sebagai app dari browser</div>
+  <div class="w-foot">v2.3.4 · Diinstall sebagai app dari browser</div>
 </div>
 
 <!-- ========== APP HEADER ========== -->
@@ -319,7 +318,7 @@
   <div class="hdr-left">
     <img class="hdr-logo" src="./logo-awb.png" alt="AWB">
     <div class="hdr-title-wrap">
-      <h1>📝 LKS GH 1</h1>
+      <h1>📝 Grower GH 1</h1>
       <span class="hdr-sub">PT. Agri Wangi Berry</span>
     </div>
   </div>
@@ -335,7 +334,7 @@
       <div class="hero-logo-box">
         <img src="./logo-awb.png" alt="Agri Wangi Berry">
       </div>
-      <h1 class="hero-title">LKS GH 1</h1>
+      <h1 class="hero-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
       <p class="hero-sub">PT. Agri Wangi Berry</p>
       <div class="hero-divider"></div>
     </div>
