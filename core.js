@@ -1,7 +1,7 @@
 // ========== CORE.JS ==========
 
 // ⚠️ WAJIB GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRFKiJSUUooman28OHwEfRcMV4xBEiIZX1rYHc1SBd23OB9-wfu-i3k8zUncsbJzTOaA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
@@ -10,36 +10,32 @@ const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
 const QUEUE_KEY = 'awb_gh1_queue_v1';
 
 // ========== MASTER KEGIATAN ==========
-// Bagian 4: Jenis Kegiatan Utama
 const KEGIATAN_UTAMA = [
   'GENERAL PRUNING',
   'PRUNING DAUN',
-  'PRUNING SULUR',
-  'PRUNING TUNAS AIR DAN CUKUP',
+  'PRUNING TUNAS AIR, CUPAT DAN SULUR',
   'PRUNING BUNGA DAN BUAH'
 ];
 
-// Bagian 13: Kegiatan Lainnya
+// type sub: 'spray' | 'row' | 'text' | 'radio_selesai' | 'radio_bay' | 'sensus'
 const KEGIATAN_LAINNYA = [
-  { key: 'SPRAYING CHEMICAL (PESTISIDA)', spray: true },
-  { key: 'SPRAYING FOLIAR', spray: true },
-  { key: 'SPRAYING CHEMICAL & SPRAYING FOLIAR', spray: true },
-  { key: 'PENGOCOORAN', spray: false },
-  { key: 'PERHITUNGAN POPULASI', spray: false },
-  { key: 'OPERASI SEMUT', spray: false },
-  { key: 'SANITASI RUANG TRANSIT DAN STERIL', spray: false },
-  { key: 'SANITASI GH', spray: false },
-  { key: 'SENSUS TANAMAN TERKENA HPT', spray: false }
+  { key: 'SPRAYING CHEMICAL (PESTISIDA)', sub: 'spray' },
+  { key: 'SPRAYING FOLIAR', sub: 'spray' },
+  { key: 'PENGOCOORAN', sub: 'row' },
+  { key: 'PERHITUNGAN POPULASI', sub: 'text' },
+  { key: 'OPERASI SEMUT', sub: 'radio_selesai' },
+  { key: 'SANITASI RUANG TRANSIT DAN STERIL', sub: 'radio_selesai' },
+  { key: 'SANITASI GH', sub: 'radio_bay' },
+  { key: 'SENSUS TANAMAN TERKENA HPT', sub: 'sensus' }
 ];
 
-// Opsi jumlah ROW
 const ROW_OPTIONS = [];
 for (let i = 0.5; i <= 9; i += 0.5) {
   const label = String(i).replace('.', ',') + ' row';
   ROW_OPTIONS.push({ value: String(i), label: label });
 }
 
-// ========== RENDER DINAMIS KEGIATAN ==========
+// ========== RENDER KEGIATAN UTAMA ==========
 function renderKegiatanUtama() {
   const container = document.getElementById('glks-kegiatan-utama-container');
   if (!container) return;
@@ -81,42 +77,86 @@ function renderKegiatanUtama() {
   `;
 }
 
+// ========== RENDER KEGIATAN LAINNYA ==========
 function renderKegiatanLainnya() {
   const container = document.getElementById('glks-kegiatan-lainnya-container');
   if (!container) return;
 
-  container.innerHTML = KEGIATAN_LAINNYA.map((item, idx) => {
+  let html = KEGIATAN_LAINNYA.map((item, idx) => {
     const safeId = 'kl-' + idx;
-    const sprayBlock = item.spray ? `
-      <div class="spray-sub">
-        <div class="spray-title">🧪 Detail Spray</div>
-        <label>Bahan Aktif</label>
-        <input type="text" data-spray-bahan="${item.key}" placeholder="Contoh: Abamectin">
-        <label>Dosis</label>
-        <input type="text" data-spray-dosis="${item.key}" placeholder="Contoh: 1 ml/L">
-        <label>Pemakaian Air</label>
-        <input type="text" data-spray-air="${item.key}" placeholder="Contoh: 200 L">
-      </div>
-    ` : '';
+    let subContent = '';
+
+    if (item.sub === 'spray') {
+      subContent = `
+        <label>Jumlah ROW</label>
+        <select data-row-lainnya="${item.key}">
+          <option value="">Pilih jumlah row...</option>
+          ${ROW_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+        </select>
+        <div class="spray-sub">
+          <div class="spray-title">🧪 Detail Spray</div>
+          <label>Bahan Aktif</label>
+          <input type="text" data-spray-bahan="${item.key}" placeholder="Contoh: Abamectin">
+          <label>Dosis</label>
+          <input type="text" data-spray-dosis="${item.key}" placeholder="Contoh: 1 ml/L">
+          <label>Pemakaian Air</label>
+          <input type="text" data-spray-air="${item.key}" placeholder="Contoh: 200 L">
+        </div>
+      `;
+    } else if (item.sub === 'row') {
+      subContent = `
+        <label>Jumlah ROW</label>
+        <select data-row-lainnya="${item.key}">
+          <option value="">Pilih jumlah row...</option>
+          ${ROW_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+        </select>
+      `;
+    } else if (item.sub === 'text') {
+      subContent = `
+        <label>Jumlah Populasi (Tulis Manual)</label>
+        <textarea data-text-lainnya="${item.key}" rows="2" placeholder="Contoh: Zona 1: 1200 tanaman, Zona 2: 800 tanaman"></textarea>
+      `;
+    } else if (item.sub === 'radio_selesai') {
+      subContent = `
+        <label>Status</label>
+        <div class="radio-group" style="margin-top:0.25rem">
+          <label><input type="radio" name="radio-${safeId}" value="SELESAI"> SELESAI</label>
+          <label><input type="radio" name="radio-${safeId}" value="TIDAK SELESAI"> TIDAK SELESAI</label>
+        </div>
+      `;
+    } else if (item.sub === 'radio_bay') {
+      subContent = `
+        <label>Cakupan Sanitasi</label>
+        <div class="radio-group" style="margin-top:0.25rem">
+          <label><input type="radio" name="radio-${safeId}" value="BAY 1 - 5"> BAY 1 - 5</label>
+          <label><input type="radio" name="radio-${safeId}" value="BAY 6 - 10"> BAY 6 - 10</label>
+        </div>
+      `;
+    } else if (item.sub === 'sensus') {
+      subContent = `
+        <label>Row Berapa</label>
+        <input type="text" data-sensus-row="${item.key}" placeholder="Contoh: Row 1-5">
+        <label>Jumlah Tanaman Terinfeksi</label>
+        <input type="text" data-sensus-jumlah="${item.key}" placeholder="Contoh: 10 tanaman">
+      `;
+    }
 
     return `
       <div class="activity-block" id="block-${safeId}">
         <label class="activity-head">
           <input type="checkbox" id="${safeId}" data-kegiatan-lainnya="${item.key}"
-                 data-spray="${item.spray}" onchange="toggleActivityBlock('${safeId}')">
+                 data-sub="${item.sub}" onchange="toggleActivityBlock('${safeId}')">
           ${item.key}
         </label>
         <div class="activity-sub" id="sub-${safeId}">
-          <label>Jumlah ROW</label>
-          <select data-row-lainnya="${item.key}">
-            <option value="">Pilih jumlah row...</option>
-            ${ROW_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
-          </select>
-          ${sprayBlock}
+          ${subContent}
         </div>
       </div>
     `;
-  }).join('') + `
+  }).join('');
+
+  // "Yang lain:" untuk Kegiatan Lainnya
+  html += `
     <div class="activity-block" id="block-kl-lain">
       <label class="activity-head">
         <input type="checkbox" id="kl-lain" onchange="toggleActivityBlock('kl-lain')">
@@ -133,6 +173,8 @@ function renderKegiatanLainnya() {
       </div>
     </div>
   `;
+
+  container.innerHTML = html;
 }
 
 function toggleActivityBlock(safeId) {
@@ -147,8 +189,10 @@ function toggleActivityBlock(safeId) {
   } else {
     sub.classList.remove('show');
     block.classList.remove('active');
-    // Reset input di dalam sub
-    sub.querySelectorAll('input[type="text"], select').forEach(el => el.value = '');
+    sub.querySelectorAll('input[type="text"], input[type="radio"], select, textarea').forEach(el => {
+      if (el.type === 'radio') el.checked = false;
+      else el.value = '';
+    });
   }
 }
 
@@ -199,7 +243,7 @@ async function kirimLksKeSheet(payload) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
 
   console.log('📤 POST ke:', SCRIPT_URL);
-  console.log('📦 Payload:', payload);
+  console.log('📦 Payload (size):', JSON.stringify(payload).length, 'chars');
 
   const response = await fetch(SCRIPT_URL, {
     method: 'POST',
@@ -283,7 +327,7 @@ function generateId() {
   return String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
 }
 
-// ========== TOGGLE CONDITIONAL (Bagian 2) ==========
+// ========== TOGGLE CONDITIONAL (Panen) ==========
 function toggleConditionalInputs() {
   const panenLainnya = document.querySelector('input[name="glks-panen"][value="Yang lain:"]');
   const panenInput = document.getElementById('glks-panen-lainnya');
@@ -293,6 +337,45 @@ function toggleConditionalInputs() {
   }
 }
 
+// ========== FOTO KENDALA ==========
+let kendalaPhotoData = null;
+let kendalaPhotoName = null;
+
+function initFotoUpload() {
+  const fotoInput = document.getElementById('glks-kendala-foto');
+  if (!fotoInput) return;
+
+  fotoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      kendalaPhotoData = null;
+      kendalaPhotoName = null;
+      document.getElementById('foto-preview').innerHTML = '';
+      return;
+    }
+
+    kendalaPhotoName = file.name;
+
+    // Limit ukuran file 3MB
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('⚠️ Ukuran foto maksimal 3MB', 'error');
+      fotoInput.value = '';
+      kendalaPhotoData = null;
+      kendalaPhotoName = null;
+      document.getElementById('foto-preview').innerHTML = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      kendalaPhotoData = ev.target.result;
+      document.getElementById('foto-preview').innerHTML =
+        `<img src="${kendalaPhotoData}" alt="Preview">`;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ========== COLLECT DATA ==========
 function collectLksGH1Data() {
   const getRadioValue = (name) => {
@@ -300,7 +383,7 @@ function collectLksGH1Data() {
     return el ? el.value : '';
   };
 
-  // Bagian 4: Kegiatan Utama
+  // Kegiatan Utama
   const kegiatanUtama = [];
   document.querySelectorAll('#glks-kegiatan-utama-container .activity-block').forEach(block => {
     const cb = block.querySelector('input[type="checkbox"]');
@@ -311,64 +394,65 @@ function collectLksGH1Data() {
     let row = '';
 
     if (namaAttr) {
-      // Kegiatan standar
       const select = block.querySelector(`select[data-row-utama="${namaAttr}"]`);
       row = select ? select.value : '';
     } else {
-      // "Yang lain:"
       const namaInput = block.querySelector('#glks-kegiatan-utama-lainnya');
       nama = namaInput ? namaInput.value : '';
       const select = block.querySelector('select[data-row-utama="__LAINNYA__"]');
       row = select ? select.value : '';
     }
 
-    if (nama) {
-      kegiatanUtama.push({ kegiatan: nama, row: row });
-    }
+    if (nama) kegiatanUtama.push({ kegiatan: nama, row: row });
   });
 
-  // Bagian 13: Kegiatan Lainnya
+  // Kegiatan Lainnya
   const kegiatanLainnya = [];
   document.querySelectorAll('#glks-kegiatan-lainnya-container .activity-block').forEach(block => {
     const cb = block.querySelector('input[type="checkbox"]');
     if (!cb || !cb.checked) return;
 
-    const namaAttr = cb.getAttribute('data-kegiatan-lainnya');
-    const isSpray = cb.getAttribute('data-spray') === 'true';
-    let nama = namaAttr;
-    let row = '';
-    let bahanAktif = '';
-    let dosis = '';
-    let air = '';
+    const key = cb.getAttribute('data-kegiatan-lainnya');
+    const sub = cb.getAttribute('data-sub');
+    const result = { kegiatan: '', sub: sub || '' };
 
-    if (namaAttr) {
-      const select = block.querySelector(`select[data-row-lainnya="${namaAttr}"]`);
-      row = select ? select.value : '';
+    if (key) {
+      result.kegiatan = key;
 
-      if (isSpray) {
-        const b = block.querySelector(`input[data-spray-bahan="${namaAttr}"]`);
-        const d = block.querySelector(`input[data-spray-dosis="${namaAttr}"]`);
-        const a = block.querySelector(`input[data-spray-air="${namaAttr}"]`);
-        bahanAktif = b ? b.value : '';
-        dosis = d ? d.value : '';
-        air = a ? a.value : '';
+      if (sub === 'spray') {
+        const sel = block.querySelector(`select[data-row-lainnya="${key}"]`);
+        const b = block.querySelector(`input[data-spray-bahan="${key}"]`);
+        const d = block.querySelector(`input[data-spray-dosis="${key}"]`);
+        const a = block.querySelector(`input[data-spray-air="${key}"]`);
+        result.row = sel ? sel.value : '';
+        result.bahanAktif = b ? b.value : '';
+        result.dosis = d ? d.value : '';
+        result.air = a ? a.value : '';
+      } else if (sub === 'row') {
+        const sel = block.querySelector(`select[data-row-lainnya="${key}"]`);
+        result.row = sel ? sel.value : '';
+      } else if (sub === 'text') {
+        const txt = block.querySelector(`textarea[data-text-lainnya="${key}"]`);
+        result.text = txt ? txt.value : '';
+      } else if (sub === 'radio_selesai' || sub === 'radio_bay') {
+        const radio = block.querySelector('input[type="radio"]:checked');
+        result.status = radio ? radio.value : '';
+      } else if (sub === 'sensus') {
+        const rowIn = block.querySelector(`input[data-sensus-row="${key}"]`);
+        const jmlIn = block.querySelector(`input[data-sensus-jumlah="${key}"]`);
+        result.row = rowIn ? rowIn.value : '';
+        result.jumlahTanaman = jmlIn ? jmlIn.value : '';
       }
     } else {
+      // Yang lain
       const namaInput = block.querySelector('#glks-kegiatan-lainnya-text');
-      nama = namaInput ? namaInput.value : '';
-      const select = block.querySelector('select[data-row-lainnya="__LAINNYA__"]');
-      row = select ? select.value : '';
+      result.kegiatan = namaInput ? namaInput.value : '';
+      const sel = block.querySelector(`select[data-row-lainnya="__LAINNYA__"]`);
+      result.row = sel ? sel.value : '';
+      result.sub = 'row';
     }
 
-    if (nama) {
-      kegiatanLainnya.push({
-        kegiatan: nama,
-        row: row,
-        bahanAktif: bahanAktif,
-        dosis: dosis,
-        air: air
-      });
-    }
+    if (result.kegiatan) kegiatanLainnya.push(result);
   });
 
   return {
@@ -382,12 +466,9 @@ function collectLksGH1Data() {
     grading: getRadioValue('glks-grading'),
     kegiatanUtama: kegiatanUtama,
     kegiatanLainnya: kegiatanLainnya,
-    perhitunganPopulasi: document.getElementById('glks-populasi').value,
-    operasiSemut: getRadioValue('glks-semut'),
-    sanitasiTransit: getRadioValue('glks-sanitasi-transit'),
-    sanitasiGH: getRadioValue('glks-sanitasi-gh'),
-    sensusTanaman: document.getElementById('glks-sensus').value,
     deskripsiKendala: document.getElementById('glks-kendala').value,
+    kendalaFotoName: kendalaPhotoName || '',
+    kendalaFotoData: kendalaPhotoData || '',
     temuanHPT: document.getElementById('glks-temuan').value
   };
 }
@@ -402,7 +483,10 @@ async function simpanDataLksGH1() {
   }
 
   let db = JSON.parse(localStorage.getItem(LKS_STORAGE_KEY) || '[]');
-  db.push(data);
+  // Jangan simpan base64 foto di localStorage (bisa penuh)
+  const dataForLocal = { ...data };
+  delete dataForLocal.kendalaFotoData;
+  db.push(dataForLocal);
   localStorage.setItem(LKS_STORAGE_KEY, JSON.stringify(db));
 
   showToast('⏳ Menyimpan ke server...', 'success');
@@ -425,18 +509,22 @@ function resetFormLksGH1() {
 
   document.getElementById('glks-tanggal').value = new Date().toISOString().split('T')[0];
 
-  // Reset semua activity block
   document.querySelectorAll('.activity-block').forEach(block => {
     block.classList.remove('active');
     const sub = block.querySelector('.activity-sub');
     if (sub) sub.classList.remove('show');
   });
 
+  kendalaPhotoData = null;
+  kendalaPhotoName = null;
+  document.getElementById('foto-preview').innerHTML = '';
+
   toggleConditionalInputs();
 }
 
-// ========== INIT RENDER ==========
+// ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
   renderKegiatanUtama();
   renderKegiatanLainnya();
+  initFotoUpload();
 });
