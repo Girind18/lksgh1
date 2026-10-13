@@ -2,7 +2,7 @@
 
 // 1. TANAM LINK DEPLOY DI SINI
 // Ganti URL di bawah ini dengan URL Web App dari Google Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbYOUR_SCRIPT_ID_HERE/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyYj6xS_O4vNaYR0FF6BRcUlFnjlWxfZxsHh5sUWQUVN9EIcU3_bYYMlJ-heY80J2HK/exec';
 
 // 2. KONFIGURASI STORAGE
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
