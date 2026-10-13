@@ -1,6 +1,6 @@
 // ========== SW.JS (SERVICE WORKER) ==========
 
-const CACHE_NAME = 'awb-gh1-cache-v4';
+const CACHE_NAME = 'awb-gh1-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
