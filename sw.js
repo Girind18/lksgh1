@@ -1,6 +1,6 @@
 // ========== SW.JS (SERVICE WORKER) ==========
 
-const CACHE_NAME = 'awb-gh1-cache-v1';
+const CACHE_NAME = 'awb-gh1-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,7 +10,6 @@ const ASSETS_TO_CACHE = [
   './logo-awb.png'
 ];
 
-// Install
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -21,7 +20,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -38,12 +36,8 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Cache First, Fallback to Network
 self.addEventListener('fetch', (event) => {
-  // Lewati request ke Google Apps Script agar selalu fresh
   if (event.request.url.includes('script.google.com')) return;
-
-  // Lewati request POST (form submission)
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
@@ -59,7 +53,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       }).catch(() => {
-        // Fallback jika offline dan tidak ada cache
         return caches.match('./index.html');
       });
     })
