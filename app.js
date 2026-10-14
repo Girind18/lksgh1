@@ -1,112 +1,109 @@
-// ========== APP.JS ==========
+// ========== APP.JS v2.5.0 ==========
 
 let deferredPrompt = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+// ========== INIT FUNCTION ==========
+function initApp() {
+  console.log('📱 App init...');
+
+  // Set tanggal default
   const tglInput = document.getElementById('glks-tanggal');
   if (tglInput && !tglInput.value) {
     tglInput.value = new Date().toISOString().split('T')[0];
   }
 
+  // Render kegiatan
+  if (typeof initCore === 'function') {
+    initCore();
+  }
+
+  // Cek state welcome
   const isWelcomed = localStorage.getItem('awb_gh1_welcomed_v1');
+  console.log('📊 isWelcomed:', isWelcomed);
 
   if (isWelcomed === '1') {
-    document.getElementById('welcome-screen').classList.add('hide');
-    document.getElementById('app-header').classList.remove('app-container-hidden');
-    document.getElementById('app-container').classList.remove('app-container-hidden');
-
+    showApp();
     if (navigator.onLine) {
-      syncWithGoogleSheet().catch(err => console.log('Auto-sync gagal:', err));
-      setTimeout(() => flushQueue().catch(() => {}), 2000);
+      try { syncWithGoogleSheet().catch(() => {}); } catch (e) {}
+      setTimeout(() => { try { flushQueue().catch(() => {}); } catch (e) {} }, 2000);
     }
     if (typeof startAutoSync === 'function') startAutoSync();
   } else {
-    document.getElementById('welcome-screen').classList.remove('hide');
+    showWelcome();
   }
+}
 
-  // ===== Service Worker dengan Auto-Update =====
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        console.log('✅ SW terdaftar:', reg.scope);
+// ========== RUN ON DOM READY ==========
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
-        // Cek update setiap kali buka
-        reg.update().catch(err => console.warn('SW update error:', err));
+// ========== SERVICE WORKER ==========
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => {
+      console.log('✅ SW terdaftar:', reg.scope);
 
-        // Kalau ada SW baru menunggu, aktifkan
-        if (reg.waiting) {
-          console.log('⚡ SW baru menunggu, aktifkan...');
-          reg.waiting.postMessage('SKIP_WAITING');
-        }
+      reg.update().catch(err => console.warn('SW update error:', err));
 
-        // Listener untuk SW baru
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('🔄 Update tersedia, reload...');
-              newWorker.postMessage('SKIP_WAITING');
-            }
-          });
+      if (reg.waiting) {
+        reg.waiting.postMessage('SKIP_WAITING');
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            newWorker.postMessage('SKIP_WAITING');
+          }
         });
-      })
-      .catch(err => console.error('❌ SW gagal:', err));
+      });
+    })
+    .catch(err => console.error('❌ SW gagal:', err));
 
-    // Reload halaman saat SW baru aktif
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      console.log('🔄 Controller berubah, reload halaman...');
-      window.location.reload();
-    });
-  }
-
-  // ===== Online/Offline =====
-  window.addEventListener('online', () => {
-    showToast('🌐 Kembali online, menyinkronkan...', 'success');
-    syncWithGoogleSheet().catch(() => {});
-    flushQueue().catch(() => {});
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    console.log('🔄 Reload untuk update...');
+    window.location.reload();
   });
+}
 
-  window.addEventListener('offline', () => {
-    showToast('📴 Mode offline, data disimpan lokal', 'error');
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine) {
-      flushQueue().catch(() => {});
-    }
-  });
-
-  // ===== Install Prompt =====
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    console.log('📱 Install prompt siap');
-    showInstallButton();
-  });
-
-  window.addEventListener('appinstalled', () => {
-    console.log('✅ PWA installed');
-    deferredPrompt = null;
-    hideInstallButton();
-    showToast('✅ Aplikasi berhasil di-install!', 'success');
-  });
-
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.navigator.standalone === true;
-  if (isIOS && !isStandalone && isWelcomed === '1') {
-    setTimeout(showIOSInstallHint, 3000);
-  }
-
-  // ===== Cek versi & tampilkan info =====
-  const appVersion = 'v2.5.0';
-  console.log('📱 App version:', appVersion);
+// ========== ONLINE / OFFLINE ==========
+window.addEventListener('online', () => {
+  try { showToast('🌐 Online, sync...', 'success'); } catch (e) {}
+  try { syncWithGoogleSheet().catch(() => {}); } catch (e) {}
+  try { flushQueue().catch(() => {}); } catch (e) {}
 });
 
-// ========== INSTALL BUTTON ==========
+window.addEventListener('offline', () => {
+  try { showToast('📴 Offline', 'error'); } catch (e) {}
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && navigator.onLine) {
+    try { flushQueue().catch(() => {}); } catch (e) {}
+  }
+});
+
+// ========== INSTALL PROMPT ==========
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('📱 Install prompt siap');
+  showInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  hideInstallButton();
+  try { showToast('✅ Aplikasi terinstall!', 'success'); } catch (e) {}
+});
+
 function showInstallButton() {
   if (document.getElementById('install-btn')) return;
   const btn = document.createElement('button');
@@ -118,7 +115,7 @@ function showInstallButton() {
     color: white; border: none; border-radius: 30px;
     padding: 12px 20px; font-size: 0.9rem; font-weight: 700;
     cursor: pointer; box-shadow: 0 4px 16px rgba(45,80,22,0.4);
-    z-index: 9999; display: flex; align-items: center; gap: 6px;
+    z-index: 9999;
   `;
   btn.onclick = installPWA;
   document.body.appendChild(btn);
@@ -130,21 +127,27 @@ function hideInstallButton() {
 }
 
 async function installPWA() {
-  if (!deferredPrompt) {
-    showToast('Install tidak tersedia. Coba lewat menu browser.', 'error');
-    return;
-  }
+  if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  console.log('User choice:', outcome);
   if (outcome === 'accepted') {
-    showToast('✅ Aplikasi sedang di-install...', 'success');
+    try { showToast('✅ Install sedang berjalan...', 'success'); } catch (e) {}
   }
   deferredPrompt = null;
   hideInstallButton();
 }
 
 // ========== iOS HINT ==========
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone) {
+  setTimeout(() => {
+    if (localStorage.getItem('awb_gh1_welcomed_v1') === '1') {
+      showIOSInstallHint();
+    }
+  }, 5000);
+}
+
 function showIOSInstallHint() {
   if (document.getElementById('ios-hint')) return;
   const overlay = document.createElement('div');
@@ -158,9 +161,9 @@ function showIOSInstallHint() {
     <div style="background: white; border-radius: 20px; padding: 24px;
                 max-width: 380px; width: 100%; text-align: center;">
       <div style="font-size: 48px; margin-bottom: 8px;">📱</div>
-      <h3 style="color: #2d5016; margin-bottom: 12px; font-size: 1.2rem;">Install di iPhone</h3>
+      <h3 style="color: #2d5016; margin-bottom: 12px;">Install di iPhone</h3>
       <p style="color: #666; font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px;">
-        1. Ketuk ikon <b>Bagikan</b> 📤 di bawah Safari<br>
+        1. Ketuk ikon <b>Bagikan</b> 📤<br>
         2. Pilih <b>"Tambah ke Layar Utama"</b><br>
         3. Ketuk <b>"Tambah"</b>
       </p>
@@ -172,3 +175,5 @@ function showIOSInstallHint() {
   `;
   document.body.appendChild(overlay);
 }
+
+console.log('📱 App version: 2.5.0');
