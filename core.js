@@ -1,7 +1,7 @@
-// ========== CORE.JS ==========
+// ========== CORE.JS - FIXED ==========
 
 // ⚠️ GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzISYZT2oj9cvdZnXuqfEPc_9QM5JnO0xEvCLWoETEhaNROyt2CWRRrVZCoPunRK2uw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxN-z1bZJwoDvX67Ey-gpuJET9bf-MpPomyfH5ZCLcSbYwfx-CRvykj8rUe9ZgNFlf-/exec';
 
 // ========== KONFIGURASI ==========
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
@@ -11,9 +11,13 @@ const DRAFT_KEY = 'awb_gh1_draft_v1';
 const QUEUE_KEY = 'awb_gh1_queue_v1';
 const SYNC_INTERVAL = 30000;
 
+// ===== GLOBAL STATE (deklarasi SEKALI saja) =====
 let syncTimer = null;
 let isSyncing = false;
 let lastSyncTime = null;
+let draftTimer = null;
+let kendalaPhotoData = null;
+let kendalaPhotoName = null;
 
 // ========== MASTER KEGIATAN ==========
 const KEGIATAN_UTAMA = [
@@ -215,10 +219,15 @@ async function welcomeConnect() {
 
   try {
     localStorage.setItem(WELCOMED_KEY, '1');
-    await syncWithGoogleSheet(true);
+    // Coba sync (kalau gagal, tetap masuk app)
+    try {
+      await syncWithGoogleSheet(true);
+    } catch (syncErr) {
+      console.warn('Sync awal gagal (offline?):', syncErr.message);
+    }
     showApp();
     startAutoSync();
-    showToast('✅ Berhasil tersambung ke Google Sheets!', 'success');
+    showToast('✅ Berhasil tersambung!', 'success');
   } catch (error) {
     console.error('Koneksi gagal:', error);
     showApp();
@@ -288,9 +297,7 @@ async function kirimLksKeSheet(payload) {
   return result;
 }
 
-// ========== AUTO-SYNC LOOP ==========
-let syncTimer = null;
-
+// ========== AUTO-SYNC ==========
 function startAutoSync() {
   if (syncTimer) clearInterval(syncTimer);
   syncTimer = setInterval(async () => {
@@ -298,12 +305,11 @@ function startAutoSync() {
     if (!navigator.onLine) return;
     const q = getQueue();
     if (q.length > 0) await flushQueue();
-  }, 30000);
-  console.log('🔄 Auto-sync tiap 30 detik');
+  }, SYNC_INTERVAL);
+  console.log('🔄 Auto-sync tiap', SYNC_INTERVAL / 1000, 'detik');
 }
 
 // ========== DRAFT ==========
-let draftTimer = null;
 function scheduleDraftSave() {
   if (draftTimer) clearTimeout(draftTimer);
   draftTimer = setTimeout(saveDraft, 1500);
@@ -440,9 +446,6 @@ function toggleConditionalInputs() {
 }
 
 // ========== FOTO ==========
-let kendalaPhotoData = null;
-let kendalaPhotoName = null;
-
 function initFotoUpload() {
   const fotoInput = document.getElementById('glks-kendala-foto');
   if (!fotoInput) return;
@@ -488,7 +491,7 @@ function collectLksGH1Data() {
     } else {
       const namaInput = block.querySelector('#glks-kegiatan-utama-lainnya');
       nama = namaInput ? namaInput.value : '';
-      const select = block.querySelector('select[data-row-utama="__LAINNYA__"]');
+      const select = block.querySelector(`select[data-row-utama="__LAINNYA__"]`);
       row = select ? select.value : '';
     }
     if (nama) kegiatanUtama.push({ kegiatan: nama, row: row });
@@ -567,18 +570,12 @@ function collectLksGH1Data() {
 async function simpanDataLksGH1() {
   const data = collectLksGH1Data();
 
-  // Validasi
-  if (!data.email) {
-    showToast('Email wajib diisi!', 'error');
-    return;
-  }
+  if (!data.email) { showToast('Email wajib diisi!', 'error'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    showToast('Format email tidak valid!', 'error');
-    return;
+    showToast('Format email tidak valid!', 'error'); return;
   }
   if (!data.tanggal || !data.nama) {
-    showToast('Tanggal dan Nama wajib diisi!', 'error');
-    return;
+    showToast('Tanggal dan Nama wajib diisi!', 'error'); return;
   }
 
   let db = JSON.parse(localStorage.getItem(LKS_STORAGE_KEY) || '[]');
