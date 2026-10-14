@@ -1,22 +1,383 @@
-<!-- Force update checker -->
-<script>
-  // Cek versi tersimpan di localStorage
-  const CURRENT_VERSION = '2.5.0'; // ⬅️ Naikkan setiap kali update kode
-  const savedVersion = localStorage.getItem('awb_gh1_version');
-  
-  if (savedVersion && savedVersion !== CURRENT_VERSION) {
-    console.log('🔄 Versi berubah:', savedVersion, '→', CURRENT_VERSION);
-    // Clear cache storage & session
-    localStorage.setItem('awb_gh1_version', CURRENT_VERSION);
-    
-    // Force reload tanpa cache
-    if ('caches' in window) {
-      caches.keys().then(keys => {
-        keys.forEach(key => caches.delete(key));
-        console.log('🗑️ Semua cache dihapus');
-      });
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#2d5016">
+  <meta name="description" content="Laporan Hasil Kerja Grower GH 1 - AWB">
+
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <title>Laporan Hasil Kerja Grower GH 1</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7f4;
+      color: #1f2937;
+      -webkit-tap-highlight-color: transparent;
     }
-  } else if (!savedVersion) {
-    localStorage.setItem('awb_gh1_version', CURRENT_VERSION);
-  }
-</script>
+
+    /* ===== UTILITY ===== */
+    .hide { display: none !important; }
+
+    /* ===== Welcome Screen ===== */
+    #welcome-screen {
+      display: flex; min-height: 100vh; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 2rem 1.5rem; background: #f5f7f4;
+      text-align: center;
+    }
+    #welcome-screen .w-logo { height: 80px; width: auto; margin-bottom: 1rem; }
+    #welcome-screen .w-title { font-size: 1.5rem; font-weight: 800; color: #2d5016; margin: 0 0 0.35rem; line-height: 1.2; }
+    #welcome-screen .w-subtitle { font-size: 0.95rem; color: #666; margin: 0 0 2rem; }
+    #welcome-screen .w-card {
+      background: white; border-radius: 16px; padding: 2rem 1.5rem;
+      max-width: 420px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid #e5e7eb;
+    }
+    #welcome-screen .w-card h2 { font-size: 1.35rem; font-weight: 800; color: #2d5016; margin: 0 0 0.75rem; }
+    #welcome-screen .w-desc { font-size: 0.9rem; color: #666; line-height: 1.55; margin-bottom: 1.75rem; }
+    #welcome-screen .w-btn {
+      width: 100%; padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, #2d5016 0%, #5a8f3a 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(45,80,22,0.2);
+    }
+    #welcome-screen .w-btn:active { transform: scale(0.98); }
+    #welcome-screen .w-btn:disabled { background: #999; cursor: wait; transform: none; box-shadow: none; }
+    #welcome-screen .w-features {
+      margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;
+      text-align: left; display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    #welcome-screen .w-feature { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: #444; }
+    #welcome-screen .w-feature-icon { font-size: 1.25rem; flex: none; }
+    #welcome-screen .w-foot { margin-top: 1.5rem; font-size: 0.75rem; color: #999; }
+
+    /* ===== App Header ===== */
+    #app-header {
+      background: #2d5016; color: white; padding: 0.6rem 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #app-header .hdr-left { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+    #app-header .hdr-logo {
+      height: 32px; width: auto; background: white;
+      border-radius: 6px; padding: 3px 5px;
+      flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #app-header .hdr-title-wrap { display: flex; flex-direction: column; min-width: 0; }
+    #app-header h1 { font-size: 0.85rem; margin: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #app-header .hdr-sub { font-size: 0.62rem; opacity: 0.85; margin-top: 1px; }
+    #app-header .hdr-btn {
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35);
+      color: white; padding: 0.45rem 0.85rem; border-radius: 8px;
+      cursor: pointer; font-size: 0.78rem; font-weight: 600;
+      flex-shrink: 0; margin-left: 0.5rem;
+    }
+
+    /* ===== Container ===== */
+    #app-container { padding: 1rem; max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
+
+    /* ===== Hero ===== */
+    .hero {
+      text-align: center; padding: 1.25rem 1rem;
+      margin-bottom: 1rem; background: white;
+      border-radius: 12px; border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .hero-logo-box {
+      width: 100%; height: 120px; background: #fff;
+      border: 1.5px solid #e5e7eb; border-radius: 10px;
+      padding: 6px; margin: 0 0 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .hero-logo-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .hero-title {
+      font-size: 1.35rem; font-weight: 900; color: #2d5016;
+      letter-spacing: -0.3px; margin: 0 0 0.4rem;
+      line-height: 1.25; text-transform: uppercase;
+    }
+    .hero-sub {
+      font-family: Georgia, "Times New Roman", serif;
+      font-style: italic; font-size: 0.95rem; font-weight: 600;
+      color: #5a8f3a; margin: 0;
+    }
+    .hero-divider {
+      width: 60px; height: 3px;
+      background: linear-gradient(90deg, #2d5016, #5a8f3a);
+      border-radius: 2px; margin: 0.85rem auto 0;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      background: white; border-radius: 12px; padding: 1.25rem;
+      margin-bottom: 1rem; border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 1rem; font-weight: 700; color: #2d5016;
+      margin-bottom: 1rem; padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* ===== Inputs ===== */
+    .input-group { margin-bottom: 1rem; }
+    .input-group label {
+      display: block; font-size: 0.875rem; font-weight: 600;
+      color: #374151; margin-bottom: 0.35rem;
+    }
+    .input-group label.required::after { content: " *"; color: #dc2626; }
+    input[type="text"], input[type="date"], input[type="number"],
+    input[type="email"], select, textarea {
+      width: 100%; padding: 0.65rem; border: 1.5px solid #d1d5db;
+      border-radius: 8px; font-size: 0.95rem; font-family: inherit;
+      background: white;
+    }
+    input[type="file"] {
+      width: 100%; padding: 0.5rem; border: 1.5px dashed #d1d5db;
+      border-radius: 8px; font-size: 0.9rem; background: #f9fafb;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #2d5016;
+      box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
+    }
+
+    /* ===== Checkbox/Radio ===== */
+    .checkbox-group, .radio-group {
+      display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;
+    }
+    .checkbox-group label, .radio-group label {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-weight: 400; font-size: 0.9rem; cursor: pointer;
+      padding: 0.4rem; border-radius: 6px;
+    }
+    input[type="checkbox"], input[type="radio"] {
+      width: 1.15rem; height: 1.15rem; accent-color: #2d5016;
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    /* ===== Activity ===== */
+    .activity-block {
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 0.75rem; margin-bottom: 0.5rem; background: #f9fafb;
+    }
+    .activity-block.active { border-color: #2d5016; background: #f0f7eb; }
+    .activity-head {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.9rem; font-weight: 600; color: #374151; cursor: pointer;
+    }
+    .activity-sub {
+      display: none; margin-top: 0.75rem; padding-top: 0.75rem;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .activity-sub.show { display: block; }
+    .activity-sub label {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      color: #4b5563; margin-bottom: 0.25rem; margin-top: 0.5rem;
+    }
+    .activity-sub input, .activity-sub select, .activity-sub textarea {
+      padding: 0.5rem; font-size: 0.85rem;
+    }
+    .spray-sub {
+      margin-top: 0.75rem; padding: 0.75rem;
+      background: #fef3c7; border-radius: 6px;
+      border-left: 3px solid #f59e0b;
+    }
+    .spray-sub .spray-title {
+      font-size: 0.8rem; font-weight: 700; color: #92400e; margin-bottom: 0.5rem;
+    }
+
+    /* ===== Buttons ===== */
+    .btn-group { display: flex; gap: 0.75rem; margin-top: 1.5rem; margin-bottom: 2rem; }
+    .btn {
+      flex: 1; padding: 0.85rem; border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2d5016 0%, #5a8f3a 100%);
+      color: white; box-shadow: 0 4px 12px rgba(45,80,22,0.2);
+    }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+
+    .info-note { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; display: block; }
+    .conditional-input { display: none; margin-top: 0.5rem; }
+    .foto-preview { margin-top: 0.5rem; text-align: center; }
+    .foto-preview img { max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 12px 24px; border-radius: 30px; font-size: 14px;
+      font-weight: 600; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 9999; max-width: 90%; text-align: center;
+    }
+    .toast.success { background: #2d5016; }
+    .toast.error { background: #dc2626; }
+  </style>
+</head>
+<body>
+
+<!-- ========== WELCOME SCREEN ========== -->
+<div id="welcome-screen" class="hide">
+  <img class="w-logo" src="./logo-awb.png" alt="Agri Wangi Berry">
+  <h1 class="w-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
+  <p class="w-subtitle">PT. Agri Wangi Berry</p>
+
+  <div class="w-card">
+    <h2>👋 Selamat Datang</h2>
+    <p class="w-desc">
+      Aplikasi untuk mencatat <b>kegiatan harian GH 1</b>, <b>panen</b>, <b>grading</b>, dan <b>laporan grower</b>.
+      Data otomatis tersimpan di perangkat & tersinkron ke Google Sheet.
+    </p>
+    <button id="welcome-btn" class="w-btn" onclick="welcomeConnect()">🔗 Sambung &amp; Mulai</button>
+    <div class="w-features">
+      <div class="w-feature"><span class="w-feature-icon">📱</span><span>Tanpa daftar — langsung pakai</span></div>
+      <div class="w-feature"><span class="w-feature-icon">☁️</span><span>Sinkron otomatis ke Google Sheet</span></div>
+      <div class="w-feature"><span class="w-feature-icon">📶</span><span>Bisa dipakai offline — data aman</span></div>
+    </div>
+  </div>
+
+  <div class="w-foot">v2.5.0 · Diinstall sebagai app dari browser</div>
+</div>
+
+<!-- ========== APP HEADER ========== -->
+<header id="app-header" class="hide">
+  <div class="hdr-left">
+    <img class="hdr-logo" src="./logo-awb.png" alt="AWB">
+    <div class="hdr-title-wrap">
+      <h1>📝 Grower GH 1</h1>
+      <span class="hdr-sub">PT. Agri Wangi Berry</span>
+    </div>
+  </div>
+  <button class="hdr-btn" onclick="syncWithGoogleSheet()">🔄 Sync</button>
+</header>
+
+<!-- ========== APP CONTAINER ========== -->
+<div id="app-container" class="hide">
+  <form id="form-lks-gh1" onsubmit="event.preventDefault(); simpanDataLksGH1();">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-logo-box">
+        <img src="./logo-awb.png" alt="Agri Wangi Berry">
+      </div>
+      <h1 class="hero-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
+      <p class="hero-sub">PT. Agri Wangi Berry</p>
+      <div class="hero-divider"></div>
+    </div>
+
+    <!-- IDENTITAS -->
+    <div class="card">
+      <div class="card-title">📋 Identitas</div>
+      <div class="input-group">
+        <label class="required">Email</label>
+        <input type="email" id="glks-email" required
+               placeholder="nama@agriwangiberry.com"
+               autocomplete="email"
+               inputmode="email">
+        <span class="info-note">Email wajib diisi.</span>
+      </div>
+      <div class="input-group">
+        <label class="required">Tanggal</label>
+        <input type="date" id="glks-tanggal" required>
+      </div>
+      <div class="input-group">
+        <label class="required">Nama Lengkap</label>
+        <select id="glks-nama" required>
+          <option value="">Pilih Nama...</option>
+          <option value="AGYL AGNIVA">AGYL AGNIVA</option>
+          <option value="CECEP SAEPUDIN">CECEP SAEPUDIN</option>
+          <option value="LINDA">LINDA</option>
+          <option value="INDRA RUDIANA">INDRA RUDIANA</option>
+          <option value="MUHAMAD HILMI">MUHAMAD HILMI</option>
+          <option value="NESTI NURHAYATI">NESTI NURHAYATI</option>
+          <option value="SUTIAWAN">SUTIAWAN</option>
+          <option value="PIPIT SEPTIANI">PIPIT SEPTIANI</option>
+          <option value="RISDA">RISDA</option>
+          <option value="RANDI">RANDI</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- PANEN -->
+    <div class="card">
+      <div class="card-title">🌾 Panen Hari Ini</div>
+      <div class="input-group">
+        <label class="required">Apakah hari ini panen?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-panen" value="Panen" onchange="toggleConditionalInputs()"> Panen</label>
+          <label><input type="radio" name="glks-panen" value="Tidak Panen" onchange="toggleConditionalInputs()"> Tidak Panen</label>
+          <label><input type="radio" name="glks-panen" value="Yang lain:" onchange="toggleConditionalInputs()"> Yang lain:</label>
+        </div>
+        <input type="text" id="glks-panen-lainnya" class="conditional-input" placeholder="Sebutkan...">
+      </div>
+    </div>
+
+    <!-- GRADING -->
+    <div class="card">
+      <div class="card-title">🍎 Grading</div>
+      <div class="input-group">
+        <label class="required">Kegiatan Grading</label>
+        <div class="radio-group">
+          <label><input type="radio" name="glks-grading" value="Grading Panen"> Grading Panen</label>
+          <label><input type="radio" name="glks-grading" value="Bantu Grading Panen"> Bantu Grading Panen</label>
+          <label><input type="radio" name="glks-grading" value="Tidak Grading"> Tidak Grading</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEGIATAN UTAMA -->
+    <div class="card">
+      <div class="card-title">✂️ Jenis Kegiatan Utama</div>
+      <div class="input-group">
+        <label>Pilih Kegiatan (Bisa lebih dari satu). Centang → pilih jumlah ROW.</label>
+        <div id="glks-kegiatan-utama-container"></div>
+      </div>
+    </div>
+
+    <!-- KEGIATAN LAINNYA -->
+    <div class="card">
+      <div class="card-title">🧰 Kegiatan Lainnya</div>
+      <div class="input-group">
+        <label>Pilih Kegiatan Tambahan (Jika ada). Centang untuk isi detail.</label>
+        <div id="glks-kegiatan-lainnya-container"></div>
+      </div>
+    </div>
+
+    <!-- KENDALA -->
+    <div class="card">
+      <div class="card-title">⚠️ Deskripsi Kendala &amp; Temuan HPT</div>
+      <div class="input-group">
+        <label>Deskripsi Kendala</label>
+        <textarea id="glks-kendala" rows="2" placeholder="Tulis kendala..."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Upload Foto Kendala (Opsional)</label>
+        <input type="file" id="glks-kendala-foto" accept="image/*" capture="environment">
+        <div class="foto-preview" id="foto-preview"></div>
+        <span class="info-note">Foto akan otomatis tersimpan ke Google Drive saat sync.</span>
+      </div>
+      <div class="input-group">
+        <label>Temuan HPT / Kendala GH 1</label>
+        <input type="text" id="glks-temuan" placeholder="Deskripsi temuan">
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">💾 Simpan &amp; Sinkron LKS</button>
+      <button type="button" class="btn btn-secondary" onclick="resetFormLksGH1()">🔄 Reset Form</button>
+    </div>
+  </form>
+</div>
+
+<script src="./core.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
