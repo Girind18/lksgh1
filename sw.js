@@ -1,5 +1,6 @@
-// ========== SERVICE WORKER ==========
-const CACHE_NAME = 'awb-gh1-v4';
+// ========== SERVICE WORKER v5 ==========
+const CACHE_VERSION = 'v5';
+const CACHE_NAME = 'awb-gh1-' + CACHE_VERSION;
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,60 +12,75 @@ const ASSETS_TO_CACHE = [
   './icon-512.png'
 ];
 
-// Install
 self.addEventListener('install', (event) => {
-  console.log('🔧 SW installing...');
+  console.log('🔧 SW', CACHE_VERSION, 'installing...');
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('📦 Caching assets...');
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
-        console.warn('Beberapa aset gagal dicache:', err);
-      });
-    })
-  );
-  self.skipWaiting();
-});
-
-// Activate
-self.addEventListener('activate', (event) => {
-  console.log('✅ SW activating...');
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('🗑️ Menghapus cache lama:', cache);
-            return caches.delete(cache);
-          }
-        })
+        ASSETS_TO_CACHE.map(url =>
+          cache.add(url).catch(err => console.warn('Skip cache:', url))
+        )
       );
     })
   );
-  self.clients.claim();
 });
 
-// Fetch — Cache First, Fallback Network
+self.addEventListener('activate', (event) => {
+  console.log('✅ SW', CACHE_VERSION, 'activating...');
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('🗑️ Hapus cache:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Skip request POST & Apps Script
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('script.google.com')) return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+  const url = new URL(event.request.url);
+  const isHTML = event.request.mode === 'navigate' || url.pathname.endsWith('.html');
+  const isJS = url.pathname.endsWith('.js');
 
+  // Network First untuk HTML & JS (fresh selalu)
+  if (isHTML || isJS) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache First untuk asset
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
       return fetch(event.request).then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
         }
         return response;
-      }).catch(() => {
-        // Fallback ke index.html kalau offline & tidak ada cache
-        return caches.match('./index.html');
-      });
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });
