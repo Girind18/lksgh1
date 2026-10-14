@@ -1,5 +1,5 @@
 // ========== SERVICE WORKER ==========
-const CACHE_NAME = 'awb-gh1-v1';
+const CACHE_NAME = 'awb-gh1-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
