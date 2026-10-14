@@ -1,24 +1,18 @@
 {
-  "name": "LKS GH 1 - Agri Wangi Berry",
+  "name": "Laporan Hasil Kerja Grower GH 1",
   "short_name": "LKS GH 1",
-  "description": "Aplikasi pencatatan LKS Grower GH 1 - PT. Agri Wangi Berry",
+  "description": "Aplikasi pelaporan hasil kerja grower GH 1 - PT. Agri Wangi Berry",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f5f7f4",
   "theme_color": "#2d5016",
-  "orientation": "portrait",
+  "lang": "id",
   "icons": [
-    {
-      "src": "./logo-awb.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./logo-awb.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
