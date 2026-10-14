@@ -1,32 +1,39 @@
-// ========== SW.JS (SERVICE WORKER) ==========
-
-const CACHE_NAME = 'awb-gh1-cache-v5';
+// ========== SERVICE WORKER ==========
+const CACHE_NAME = 'awb-gh1-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './core.js',
   './app.js',
   './manifest.json',
-  './logo-awb.png'
+  './logo-awb.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
+// Install
 self.addEventListener('install', (event) => {
+  console.log('🔧 SW installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching assets...');
-      return cache.addAll(ASSETS_TO_CACHE);
+      console.log('📦 Caching assets...');
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('Beberapa aset gagal dicache:', err);
+      });
     })
   );
   self.skipWaiting();
 });
 
+// Activate
 self.addEventListener('activate', (event) => {
+  console.log('✅ SW activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('Menghapus cache lama:', cache);
+            console.log('🗑️ Menghapus cache lama:', cache);
             return caches.delete(cache);
           }
         })
@@ -36,9 +43,11 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Fetch — Cache First, Fallback Network
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('script.google.com')) return;
+  // Skip request POST & Apps Script
   if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('script.google.com')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -53,6 +62,7 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       }).catch(() => {
+        // Fallback ke index.html kalau offline & tidak ada cache
         return caches.match('./index.html');
       });
     })
