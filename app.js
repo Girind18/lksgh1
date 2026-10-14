@@ -1,5 +1,7 @@
 // ========== APP.JS ==========
 
+let deferredPrompt = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   const tglInput = document.getElementById('glks-tanggal');
   if (tglInput && !tglInput.value) {
@@ -13,24 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-header').classList.remove('app-container-hidden');
     document.getElementById('app-container').classList.remove('app-container-hidden');
 
-    // Auto-sync pertama kali
     if (navigator.onLine) {
       syncWithGoogleSheet().catch(err => console.log('Auto-sync gagal:', err));
       setTimeout(() => flushQueue().catch(() => {}), 2000);
     }
-    startAutoSync();
+    if (typeof startAutoSync === 'function') startAutoSync();
   } else {
     document.getElementById('welcome-screen').classList.remove('hide');
   }
 
-  // Service Worker
+  // ===== Service Worker =====
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('✅ SW terdaftar:', reg.scope))
       .catch(err => console.error('❌ SW gagal:', err));
   }
 
-  // ====== LISTENER ONLINE/OFFLINE ======
+  // ===== Online/Offline =====
   window.addEventListener('online', () => {
     showToast('🌐 Kembali online, menyinkronkan...', 'success');
     syncWithGoogleSheet().catch(() => {});
@@ -41,22 +42,156 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('📴 Mode offline, data disimpan lokal', 'error');
   });
 
-  // ====== AUTO-SYNC SAAT TAB AKTIF KEMBALI ======
+  // ===== Auto-sync saat tab aktif =====
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && navigator.onLine) {
-      console.log('👁️ Tab aktif kembali, cek queue...');
       flushQueue().catch(() => {});
     }
   });
 
-  // ====== SYNC SEBELUM TAB DITUTUP ======
-  window.addEventListener('beforeunload', () => {
-    // Coba flush queue terakhir kali
-    if (navigator.onLine) {
-      const q = getQueue();
-      if (q.length > 0) {
-        navigator.sendBeacon(SCRIPT_URL, JSON.stringify(q[0]));
-      }
-    }
+  // ===== INSTALL PROMPT (Android Chrome) =====
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('📱 Install prompt siap');
+    showInstallButton();
   });
+
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA installed');
+    deferredPrompt = null;
+    hideInstallButton();
+    showToast('✅ Aplikasi berhasil di-install!', 'success');
+  });
+
+  // ===== Cek sudah install atau belum =====
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('📱 Berjalan sebagai PWA (standalone)');
+  }
+
+  // ===== iOS Install Hint =====
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if (isIOS && !isStandalone && isWelcomed === '1') {
+    setTimeout(showIOSInstallHint, 3000);
+  }
 });
+
+// ========== TOMBOL INSTALL ==========
+function showInstallButton() {
+  if (document.getElementById('install-btn')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'install-btn';
+  btn.innerHTML = '⬇️ Install Aplikasi';
+  btn.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #2d5016 0%, #5a8f3a 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(45,80,22,0.4);
+    z-index: 9999;
+    animation: pulse 2s infinite;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  `;
+  btn.onclick = installPWA;
+  document.body.appendChild(btn);
+
+  // Animasi pulse
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(45,80,22,0.4); }
+      50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(45,80,22,0.6); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function hideInstallButton() {
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.remove();
+}
+
+async function installPWA() {
+  if (!deferredPrompt) {
+    showToast('Install tidak tersedia. Coba lewat menu browser.', 'error');
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('User choice:', outcome);
+  if (outcome === 'accepted') {
+    showToast('✅ Aplikasi sedang di-install...', 'success');
+  }
+  deferredPrompt = null;
+  hideInstallButton();
+}
+
+// ========== iOS INSTALL HINT ==========
+function showIOSInstallHint() {
+  if (document.getElementById('ios-hint')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ios-hint';
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s;
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      animation: slideUp 0.3s;
+    ">
+      <div style="font-size: 48px; margin-bottom: 8px;">📱</div>
+      <h3 style="color: #2d5016; margin-bottom: 12px; font-size: 1.2rem;">Install di iPhone</h3>
+      <p style="color: #666; font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px;">
+        1. Ketuk ikon <b>Bagikan</b> 📤 di bawah Safari<br>
+        2. Pilih <b>"Tambah ke Layar Utama"</b><br>
+        3. Ketuk <b>"Tambah"</b>
+      </p>
+      <button onclick="document.getElementById('ios-hint').remove()" style="
+        width: 100%;
+        padding: 12px;
+        background: #2d5016;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      ">Mengerti</button>
+    </div>
+  `;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  `;
+  document.head.appendChild(style);
+
+  document.body.appendChild(overlay);
+}
