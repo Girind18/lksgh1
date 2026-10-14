@@ -1,9 +1,10 @@
-// ========== CORE.JS - FIXED ==========
+// ========== CORE.JS v2.5.0 ==========
 
 // ⚠️ GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxN-z1bZJwoDvX67Ey-gpuJET9bf-MpPomyfH5ZCLcSbYwfx-CRvykj8rUe9ZgNFlf-/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIyQ6mUJOGR8Y51GVwXbZAhI_aiXFvol5y5iAiRQ3jjBuRadvLXjDlQJC1PZ0iiL3C/exec';
 
 // ========== KONFIGURASI ==========
+const APP_VERSION = '2.5.0';
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
 const DATA_KEY = 'awb_gh1_data_v1';
 const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
@@ -11,7 +12,7 @@ const DRAFT_KEY = 'awb_gh1_draft_v1';
 const QUEUE_KEY = 'awb_gh1_queue_v1';
 const SYNC_INTERVAL = 30000;
 
-// ===== GLOBAL STATE (deklarasi SEKALI saja) =====
+// ===== GLOBAL STATE =====
 let syncTimer = null;
 let isSyncing = false;
 let lastSyncTime = null;
@@ -40,8 +41,7 @@ const KEGIATAN_LAINNYA = [
 
 const ROW_OPTIONS = [];
 for (let i = 0.5; i <= 9; i += 0.5) {
-  const label = String(i).replace('.', ',') + ' row';
-  ROW_OPTIONS.push({ value: String(i), label: label });
+  ROW_OPTIONS.push({ value: String(i), label: String(i).replace('.', ',') + ' row' });
 }
 
 // ========== RENDER KEGIATAN UTAMA ==========
@@ -163,9 +163,7 @@ function renderKegiatanLainnya() {
                  data-sub="${item.sub}" onchange="toggleActivityBlock('${safeId}')">
           ${item.key}
         </label>
-        <div class="activity-sub" id="sub-${safeId}">
-          ${subContent}
-        </div>
+        <div class="activity-sub" id="sub-${safeId}">${subContent}</div>
       </div>
     `;
   }).join('');
@@ -219,12 +217,8 @@ async function welcomeConnect() {
 
   try {
     localStorage.setItem(WELCOMED_KEY, '1');
-    // Coba sync (kalau gagal, tetap masuk app)
-    try {
-      await syncWithGoogleSheet(true);
-    } catch (syncErr) {
-      console.warn('Sync awal gagal (offline?):', syncErr.message);
-    }
+    try { await syncWithGoogleSheet(true); } 
+    catch (e) { console.warn('Sync awal gagal:', e.message); }
     showApp();
     startAutoSync();
     showToast('✅ Berhasil tersambung!', 'success');
@@ -232,14 +226,14 @@ async function welcomeConnect() {
     console.error('Koneksi gagal:', error);
     showApp();
     startAutoSync();
-    showToast('⚠️ Mode Offline: Data disimpan lokal.', 'error');
+    showToast('⚠️ Mode Offline', 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '🔗 Sambung &amp; Mulai';
   }
 }
 
-// ========== GET (via POST — fix CORS) ==========
+// ========== GET (via POST) ==========
 async function syncWithGoogleSheet(isInitial = false) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
   if (isSyncing) return;
@@ -256,7 +250,6 @@ async function syncWithGoogleSheet(isInitial = false) {
     });
 
     if (!response.ok) throw new Error('HTTP ' + response.status);
-
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); }
@@ -275,7 +268,6 @@ async function syncWithGoogleSheet(isInitial = false) {
 // ========== POST ==========
 async function kirimLksKeSheet(payload) {
   if (!navigator.onLine) throw new Error('Tidak ada koneksi internet');
-
   console.log('📤 POST payload...');
   const response = await fetch(SCRIPT_URL, {
     method: 'POST',
@@ -286,13 +278,11 @@ async function kirimLksKeSheet(payload) {
   });
 
   if (!response.ok) throw new Error('HTTP ' + response.status);
-
   const text = await response.text();
   let result;
   try { result = JSON.parse(text); }
-  catch (e) { throw new Error('Response bukan JSON: ' + text.substring(0, 200)); }
-
-  if (result.status !== 'success') throw new Error(result.message || 'Server menolak data');
+  catch (e) { throw new Error('Response bukan JSON'); }
+  if (result.status !== 'success') throw new Error(result.message || 'Server menolak');
   console.log('✅ POST sukses:', result.message);
   return result;
 }
@@ -320,7 +310,6 @@ function saveDraft() {
     const data = collectLksGH1Data();
     delete data.kendalaFotoData;
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
-    console.log('💾 Draft tersimpan');
   } catch (e) { console.warn('Draft error:', e); }
 }
 
@@ -345,7 +334,6 @@ function loadDraft() {
       const el = document.querySelector(`input[name="glks-grading"][value="${draft.grading}"]`);
       if (el) el.checked = true;
     }
-
     console.log('📥 Draft restored');
   } catch (e) { console.warn('Load draft error:', e); }
 }
@@ -360,37 +348,30 @@ function pushToQueue(payload) {
   q.push(payload);
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
   updateSyncStatus();
-  console.log('📥 Masuk queue. Total:', q.length);
 }
 
 async function flushQueue() {
   const q = getQueue();
   if (q.length === 0 || isSyncing) return;
-
-  console.log('🔄 Kirim queue:', q.length, 'item');
+  console.log('🔄 Kirim queue:', q.length);
   const remaining = [];
-
   for (const item of q) {
     try { await kirimLksKeSheet(item); }
-    catch (err) { console.warn('Gagal:', err); remaining.push(item); }
+    catch (err) { remaining.push(item); }
   }
-
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
   updateSyncStatus();
-
   if (remaining.length === 0) {
-    showToast('✅ Semua data queue tersinkron!', 'success');
-    await syncWithGoogleSheet();
+    showToast('✅ Queue tersinkron!', 'success');
   }
 }
 
-// ========== STATUS ==========
 function updateSyncStatus() {
   const el = document.getElementById('sync-status');
   if (!el) return;
   const q = getQueue();
   if (q.length > 0) {
-    el.textContent = `⏳ ${q.length} data menunggu sync`;
+    el.textContent = `⏳ ${q.length} menunggu sync`;
     el.style.color = '#facc15';
   } else if (lastSyncTime) {
     const t = lastSyncTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -407,12 +388,18 @@ function showApp() {
   const ws = document.getElementById('welcome-screen');
   const hd = document.getElementById('app-header');
   const app = document.getElementById('app-container');
-  ws.style.opacity = '0';
-  setTimeout(() => {
-    ws.classList.add('hide');
-    hd.classList.remove('app-container-hidden');
-    app.classList.remove('app-container-hidden');
-  }, 300);
+  if (ws) ws.classList.add('hide');
+  if (hd) hd.classList.remove('hide');
+  if (app) app.classList.remove('hide');
+}
+
+function showWelcome() {
+  const ws = document.getElementById('welcome-screen');
+  const hd = document.getElementById('app-header');
+  const app = document.getElementById('app-container');
+  if (ws) ws.classList.remove('hide');
+  if (hd) hd.classList.add('hide');
+  if (app) app.classList.add('hide');
 }
 
 // ========== TOAST ==========
@@ -423,10 +410,7 @@ function showToast(message, type = 'success') {
   toast.className = 'toast ' + type;
   toast.textContent = message;
   document.body.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  setTimeout(() => toast.remove(), 3000);
 }
 
 // ========== ID ==========
@@ -458,7 +442,7 @@ function initFotoUpload() {
     }
     kendalaPhotoName = file.name;
     if (file.size > 3 * 1024 * 1024) {
-      showToast('⚠️ Ukuran foto maksimal 3MB', 'error');
+      showToast('⚠️ Ukuran foto maks 3MB', 'error');
       fotoInput.value = '';
       return;
     }
@@ -583,19 +567,18 @@ async function simpanDataLksGH1() {
   delete dataForLocal.kendalaFotoData;
   db.push(dataForLocal);
   localStorage.setItem(LKS_STORAGE_KEY, JSON.stringify(db));
-
   localStorage.removeItem(DRAFT_KEY);
-  showToast('⏳ Menyimpan ke server...', 'success');
+  showToast('⏳ Menyimpan...', 'success');
 
   try {
     await kirimLksKeSheet(data);
-    showToast('✅ LKS berhasil disimpan & disinkronkan!', 'success');
+    showToast('✅ Berhasil disimpan & disinkronkan!', 'success');
     resetFormLksGH1();
     await syncWithGoogleSheet();
   } catch (error) {
-    console.error('❌ Sync error:', error);
+    console.error('❌ Error:', error);
     pushToQueue(data);
-    showToast('⚠️ Data masuk queue, akan dicoba lagi otomatis.', 'error');
+    showToast('⚠️ Masuk queue, akan dicoba lagi.', 'error');
   }
 }
 
@@ -604,13 +587,11 @@ function resetFormLksGH1() {
   const form = document.getElementById('form-lks-gh1');
   if (form) form.reset();
   document.getElementById('glks-tanggal').value = new Date().toISOString().split('T')[0];
-
   document.querySelectorAll('.activity-block').forEach(block => {
     block.classList.remove('active');
     const sub = block.querySelector('.activity-sub');
     if (sub) sub.classList.remove('show');
   });
-
   kendalaPhotoData = null;
   kendalaPhotoName = null;
   window.currentEditId = null;
@@ -625,14 +606,14 @@ function bindAutoSave() {
   if (!form) return;
   form.addEventListener('input', scheduleDraftSave);
   form.addEventListener('change', scheduleDraftSave);
-  console.log('🔗 Auto-save draft aktif');
 }
 
-// ========== INIT ==========
-document.addEventListener('DOMContentLoaded', () => {
+// ========== INIT CORE ==========
+function initCore() {
+  console.log('🔧 Init core...');
   renderKegiatanUtama();
   renderKegiatanLainnya();
   initFotoUpload();
   bindAutoSave();
   setTimeout(loadDraft, 500);
-});
+}
