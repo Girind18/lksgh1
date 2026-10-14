@@ -288,7 +288,9 @@ async function kirimLksKeSheet(payload) {
   return result;
 }
 
-// ========== AUTO-SYNC ==========
+// ========== AUTO-SYNC LOOP ==========
+let syncTimer = null;
+
 function startAutoSync() {
   if (syncTimer) clearInterval(syncTimer);
   syncTimer = setInterval(async () => {
@@ -296,8 +298,8 @@ function startAutoSync() {
     if (!navigator.onLine) return;
     const q = getQueue();
     if (q.length > 0) await flushQueue();
-  }, SYNC_INTERVAL);
-  console.log('🔄 Auto-sync tiap', SYNC_INTERVAL / 1000, 'detik');
+  }, 30000);
+  console.log('🔄 Auto-sync tiap 30 detik');
 }
 
 // ========== DRAFT ==========
