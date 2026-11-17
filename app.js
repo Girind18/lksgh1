@@ -1,4 +1,4 @@
-// ========== APP.JS v3.0.0 ==========
+// ========== APP.JS v3.1.0 ==========
 
 let deferredPrompt = null;
 
@@ -95,25 +95,20 @@ window.addEventListener('appinstalled', () => {
 });
 
 function checkInstallable() {
-  // Kalau sudah standalone, sembunyikan tombol install
   if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
     hideInstallButtons();
     return;
   }
-  // Kalau iOS, tampilkan hint
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (isIOS) {
-    // Tombol install untuk iOS trigger manual hint
     setTimeout(() => showIOSHintButton(), 2000);
   }
 }
 
 function showInstallButtons() {
-  // Header button
   const hdrBtn = document.getElementById('hdr-install-btn');
   if (hdrBtn) hdrBtn.classList.remove('hide');
 
-  // Bottom banner
   if (document.getElementById('install-banner')) return;
   if (window.matchMedia('(display-mode: standalone)').matches) return;
 
@@ -136,7 +131,6 @@ function hideInstallButtons() {
 
 async function installPWA() {
   if (!deferredPrompt) {
-    // iOS atau sudah pernah install
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if (isIOS) {
       showIOSHint();
@@ -187,15 +181,12 @@ function showIOSHint() {
   document.body.appendChild(ov);
 }
 
-// ========== CHECK INSTALLABLE ==========
-// Beberapa browser butuh waktu sebelum trigger beforeinstallprompt
 setTimeout(() => {
   if (!deferredPrompt) {
-    // Cek apakah manifest valid & SW terdaftar
     fetch('./manifest.json').then(r => r.json()).then(m => {
       console.log('📋 Manifest:', m.name, '| Icons:', m.icons.length);
     }).catch(e => console.warn('Manifest tidak bisa di-load:', e));
   }
 }, 3000);
 
-console.log('📱 App version: 3.0.0');
+console.log('📱 App version: 3.1.0');
