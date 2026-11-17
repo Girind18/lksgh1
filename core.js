@@ -1,9 +1,9 @@
-// ========== CORE.JS v3.0.0 ==========
+// ========== CORE.JS v3.1.0 ==========
 
 // ⚠️ GANTI dengan URL Web App Apps Script Anda
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIyQ6mUJOGR8Y51GVwXbZAhI_aiXFvol5y5iAiRQ3jjBuRadvLXjDlQJC1PZ0iiL3C/exec';
 
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.1.0';
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
 const DATA_KEY = 'awb_gh1_data_v1';
 const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
@@ -17,6 +17,31 @@ let lastSyncTime = null;
 let draftTimer = null;
 let kendalaPhotoData = null;
 let kendalaPhotoName = null;
+
+// ========== DAFTAR NAMA ==========
+// Silakan ganti isi array NAMA_GH2 dengan nama-nama asli nanti
+const NAMA_GH1 = [
+  'AGYL AGNIVA',
+  'CECEP SAEPUDIN',
+  'LINDA',
+  'INDRA RUDIANA',
+  'MUHAMAD HILMI',
+  'NESTI NURHAYATI',
+  'SUTIAWAN',
+  'PIPIT SEPTIANI',
+  'RISDA',
+  'RANDI'
+];
+
+const NAMA_GH2 = [
+  'Dena Raditya Sutrisna',
+  'Ganjar',
+  'Ilham Jaelani',
+  'Rendi Saeful Nazar',
+  'Rismaya',
+  'Rima Rismayanti',
+  'Rudi Saputra'
+];
 
 const KEGIATAN_UTAMA = [
   'GENERAL PRUNING',
@@ -39,6 +64,38 @@ const KEGIATAN_LAINNYA = [
 const ROW_OPTIONS = [];
 for (let i = 0.5; i <= 9; i += 0.5) {
   ROW_OPTIONS.push({ value: String(i), label: String(i).replace('.', ',') + ' row' });
+}
+
+// ========== FUNGSI DROPDOWN NAMA DINAMIS ==========
+function updateNamaOptions() {
+  const lokasi = document.getElementById('glks-lokasi').value;
+  const namaSelect = document.getElementById('glks-nama');
+  
+  // Simpan nilai yang sedang dipilih (jika ada)
+  const currentValue = namaSelect.value;
+  
+  namaSelect.innerHTML = '<option value="">Pilih Nama...</option>';
+  
+  let names = [];
+  if (lokasi === 'GH 1') {
+    names = NAMA_GH1;
+  } else if (lokasi === 'GH 2') {
+    names = NAMA_GH2;
+  }
+
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    namaSelect.appendChild(opt);
+  });
+
+  // Kembalikan nilai jika masih ada di list baru
+  if (names.includes(currentValue)) {
+    namaSelect.value = currentValue;
+  }
+
+  scheduleDraftSave();
 }
 
 // ========== RENDER ==========
@@ -228,7 +285,7 @@ async function syncWithGoogleSheet(isInitial = false) {
 
 async function kirimLksKeSheet(payload) {
   if (!navigator.onLine) throw new Error('Offline');
-  console.log('📤 POST payload...');
+  console.log('📤 POST payload...', payload.lokasi);
   const response = await fetch(SCRIPT_URL, {
     method: 'POST', mode: 'cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -269,12 +326,19 @@ function saveDraft() {
 function loadDraft() {
   try {
     const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-    if (!d || !d.nama) return;
+    if (!d) return;
+    
+    if (d.lokasi) {
+      document.getElementById('glks-lokasi').value = d.lokasi;
+      updateNamaOptions();
+    }
+    
     if (d.email) document.getElementById('glks-email').value = d.email;
     if (d.tanggal) document.getElementById('glks-tanggal').value = d.tanggal;
     if (d.nama) document.getElementById('glks-nama').value = d.nama;
     if (d.deskripsiKendala) document.getElementById('glks-kendala').value = d.deskripsiKendala;
     if (d.temuanHPT) document.getElementById('glks-temuan').value = d.temuanHPT;
+    
     if (d.panenHariIni) {
       const el = document.querySelector(`input[name="glks-panen"][value="${d.panenHariIni}"]`);
       if (el) el.checked = true;
@@ -468,7 +532,7 @@ function collectLksGH1Data() {
   return {
     id: window.currentEditId || generateId(),
     timestamp: new Date().toISOString(),
-    lokasi: 'GH 1',
+    lokasi: document.getElementById('glks-lokasi').value, // Data GH 1 atau GH 2
     email: document.getElementById('glks-email').value.trim(),
     tanggal: document.getElementById('glks-tanggal').value,
     nama: document.getElementById('glks-nama').value,
@@ -487,6 +551,8 @@ function collectLksGH1Data() {
 // ========== SIMPAN ==========
 async function simpanDataLksGH1() {
   const data = collectLksGH1Data();
+  
+  if (!data.lokasi) { showToast('Pilih Lokasi (GH 1 / GH 2)!', 'error'); return; }
   if (!data.email) { showToast('Email wajib diisi!', 'error'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     showToast('Format email tidak valid!', 'error'); return;
@@ -505,7 +571,7 @@ async function simpanDataLksGH1() {
 
   try {
     await kirimLksKeSheet(data);
-    showToast('✅ Berhasil disimpan & disinkronkan!', 'success');
+    showToast(`✅ Berhasil disimpan ke ${data.lokasi}!`, 'success');
     resetFormLksGH1();
     await syncWithGoogleSheet();
   } catch (error) {
@@ -519,7 +585,13 @@ async function simpanDataLksGH1() {
 function resetFormLksGH1() {
   const f = document.getElementById('form-lks-gh1');
   if (f) f.reset();
+  
   document.getElementById('glks-tanggal').value = new Date().toISOString().split('T')[0];
+  
+  // Reset dropdown nama ke default
+  document.getElementById('glks-lokasi').value = '';
+  updateNamaOptions();
+
   document.querySelectorAll('.activity-block').forEach(b => {
     b.classList.remove('active');
     const s = b.querySelector('.activity-sub');
@@ -543,6 +615,7 @@ function initCore() {
   console.log('🔧 Init core...');
   renderKegiatanUtama();
   renderKegiatanLainnya();
+  updateNamaOptions(); // Init nama options (akan kosong karena lokasi belum dipilih)
   initFotoUpload();
   bindAutoSave();
   setTimeout(loadDraft, 500);
