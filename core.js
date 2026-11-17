@@ -1,9 +1,9 @@
-// ========== CORE.JS v3.1.0 ==========
+// ========== CORE.JS v3.1.1 ==========
 
 // ⚠️ GANTI dengan URL Web App Apps Script Anda
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxR2MAG1eQ2tfatKox_WODDOPCxm1iqpglHnA49OR9hGlwRvZrAhfcQ60tpIDhTayuH/exec';
 
-const APP_VERSION = '3.1.0';
+const APP_VERSION = '3.1.1';
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
 const DATA_KEY = 'awb_gh1_data_v1';
 const LKS_STORAGE_KEY = 'awb_gh1_lks_v1';
@@ -19,7 +19,6 @@ let kendalaPhotoData = null;
 let kendalaPhotoName = null;
 
 // ========== DAFTAR NAMA ==========
-// Silakan ganti isi array NAMA_GH2 dengan nama-nama asli nanti
 const NAMA_GH1 = [
   'AGYL AGNIVA',
   'CECEP SAEPUDIN',
@@ -34,13 +33,10 @@ const NAMA_GH1 = [
 ];
 
 const NAMA_GH2 = [
-  'Dena Raditya Sutrisna',
-  'Ganjar',
-  'Ilham Jaelani',
-  'Rendi Saeful Nazar',
-  'Rismaya',
-  'Rima Rismayanti',
-  'Rudi Saputra'
+  'NAMA GH 2 - ORANG 1',
+  'NAMA GH 2 - ORANG 2',
+  'NAMA GH 2 - ORANG 3'
+  // Tambahkan nama GH 2 di sini
 ];
 
 const KEGIATAN_UTAMA = [
@@ -57,7 +53,7 @@ const KEGIATAN_LAINNYA = [
   { key: 'PERHITUNGAN POPULASI', sub: 'text' },
   { key: 'OPERASI SEMUT', sub: 'radio_selesai' },
   { key: 'SANITASI RUANG TRANSIT DAN STERIL', sub: 'radio_selesai' },
-  { key: 'SANITASI GH', sub: 'radio_bay' },
+  { key: 'SANITASI GH', sub: 'radio_bay' }, // Ini akan dikondisikan GH 1 / GH 2
   { key: 'SENSUS TANAMAN TERKENA HPT', sub: 'sensus' }
 ];
 
@@ -66,7 +62,7 @@ for (let i = 0.5; i <= 9; i += 0.5) {
   ROW_OPTIONS.push({ value: String(i), label: String(i).replace('.', ',') + ' row' });
 }
 
-// ========== FUNGSI DROPDOWN NAMA DINAMIS ==========
+// ========== FUNGSI DROPDOWN NAMA & LOKASI ==========
 function updateNamaOptions() {
   const lokasi = document.getElementById('glks-lokasi').value;
   const namaSelect = document.getElementById('glks-nama');
@@ -95,7 +91,26 @@ function updateNamaOptions() {
     namaSelect.value = currentValue;
   }
 
+  // Panggil fungsi untuk toggle input Sanitasi GH
+  toggleLokasiFields();
+  
   scheduleDraftSave();
+}
+
+// ========== TOGGLE FIELD KHUSUS LOKASI ==========
+function toggleLokasiFields() {
+  const lokasi = document.getElementById('glks-lokasi').value;
+  const isGH2 = (lokasi === 'GH 2');
+  
+  // Toggle untuk input GH 1 (Radio Button)
+  document.querySelectorAll('.lokasi-gh1-only').forEach(el => {
+    el.style.display = isGH2 ? 'none' : 'block';
+  });
+  
+  // Toggle untuk input GH 2 (Teks Manual)
+  document.querySelectorAll('.lokasi-gh2-only').forEach(el => {
+    el.style.display = isGH2 ? 'block' : 'none';
+  });
 }
 
 // ========== RENDER ==========
@@ -181,11 +196,19 @@ function renderKegiatanLainnya() {
                <label><input type="radio" name="radio-${sid}" value="TIDAK SELESAI"> TIDAK SELESAI</label>
              </div>`;
     } else if (item.sub === 'radio_bay') {
-      sub = `<label>Cakupan Sanitasi</label>
-             <div class="radio-group" style="margin-top:0.25rem">
-               <label><input type="radio" name="radio-${sid}" value="BAY 1 - 5"> BAY 1 - 5</label>
-               <label><input type="radio" name="radio-${sid}" value="BAY 6 - 10"> BAY 6 - 10</label>
-             </div>`;
+      // KHUSUS SANITASI GH: Dibuat dua opsi, GH 1 (Radio) dan GH 2 (Teks Manual)
+      sub = `
+        <div class="lokasi-gh1-only">
+          <label>Cakupan Sanitasi</label>
+          <div class="radio-group" style="margin-top:0.25rem">
+            <label><input type="radio" name="radio-${sid}" value="BAY 1 - 5"> BAY 1 - 5</label>
+            <label><input type="radio" name="radio-${sid}" value="BAY 6 - 10"> BAY 6 - 10</label>
+          </div>
+        </div>
+        <div class="lokasi-gh2-only" style="display:none;">
+          <label>Cakupan Sanitasi (Manual)</label>
+          <input type="text" data-sanitasi-manual="${item.key}" placeholder="Tulis detail cakupan sanitasi...">
+        </div>`;
     } else if (item.sub === 'sensus') {
       sub = `<label>Row Berapa</label>
              <input type="text" data-sensus-row="${item.key}" placeholder="Contoh: Row 1-5">
@@ -265,10 +288,11 @@ async function syncWithGoogleSheet(isInitial = false) {
   isSyncing = true;
   try {
     console.log('📡 Sync via POST...');
+    const lokasi = document.getElementById('glks-lokasi') ? document.getElementById('glks-lokasi').value : 'GH 1';
     const response = await fetch(SCRIPT_URL, {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getAll' }),
+      body: JSON.stringify({ action: 'getAll', lokasi: lokasi }),
       redirect: 'follow'
     });
     if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -330,7 +354,7 @@ function loadDraft() {
     
     if (d.lokasi) {
       document.getElementById('glks-lokasi').value = d.lokasi;
-      updateNamaOptions();
+      updateNamaOptions(); // Ini otomatis memanggil toggleLokasiFields
     }
     
     if (d.email) document.getElementById('glks-email').value = d.email;
@@ -511,8 +535,16 @@ function collectLksGH1Data() {
         const tx = b.querySelector(`textarea[data-text-lainnya="${key}"]`);
         r.text = tx ? tx.value : '';
       } else if (sub === 'radio_selesai' || sub === 'radio_bay') {
-        const rd = b.querySelector('input[type="radio"]:checked');
-        r.status = rd ? rd.value : '';
+        // Logika khusus untuk Sanitasi GH (radio_bay)
+        if (sub === 'radio_bay' && document.getElementById('glks-lokasi').value === 'GH 2') {
+          // Ambil dari input manual jika GH 2
+          const manualInp = b.querySelector(`input[data-sanitasi-manual="${key}"]`);
+          r.status = manualInp ? manualInp.value : '';
+        } else {
+          // Ambil dari radio button jika GH 1
+          const rd = b.querySelector('input[type="radio"]:checked');
+          r.status = rd ? rd.value : '';
+        }
       } else if (sub === 'sensus') {
         const ri = b.querySelector(`input[data-sensus-row="${key}"]`);
         const ji = b.querySelector(`input[data-sensus-jumlah="${key}"]`);
@@ -532,7 +564,7 @@ function collectLksGH1Data() {
   return {
     id: window.currentEditId || generateId(),
     timestamp: new Date().toISOString(),
-    lokasi: document.getElementById('glks-lokasi').value, // Data GH 1 atau GH 2
+    lokasi: document.getElementById('glks-lokasi').value,
     email: document.getElementById('glks-email').value.trim(),
     tanggal: document.getElementById('glks-tanggal').value,
     nama: document.getElementById('glks-nama').value,
@@ -590,7 +622,7 @@ function resetFormLksGH1() {
   
   // Reset dropdown nama ke default
   document.getElementById('glks-lokasi').value = '';
-  updateNamaOptions();
+  updateNamaOptions(); // Ini juga akan me-reset tampilan field Lokasi
 
   document.querySelectorAll('.activity-block').forEach(b => {
     b.classList.remove('active');
@@ -615,7 +647,7 @@ function initCore() {
   console.log('🔧 Init core...');
   renderKegiatanUtama();
   renderKegiatanLainnya();
-  updateNamaOptions(); // Init nama options (akan kosong karena lokasi belum dipilih)
+  updateNamaOptions(); // Init nama & toggle field
   initFotoUpload();
   bindAutoSave();
   setTimeout(loadDraft, 500);
