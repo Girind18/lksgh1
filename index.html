@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#2d5016">
-  <meta name="description" content="Laporan Hasil Kerja Grower GH 1 - AWB">
+  <meta name="description" content="Laporan Hasil Kerja Grower - AWB">
 
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="./logo-awb.png">
@@ -12,9 +12,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="LKS GH 1">
+  <meta name="apple-mobile-web-app-title" content="LKS Grower AWB">
 
-  <title>Laporan Hasil Kerja Grower GH 1</title>
+  <title>Laporan Hasil Kerja Grower - AWB</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -264,13 +264,13 @@
 <!-- ========== WELCOME SCREEN ========== -->
 <div id="welcome-screen" class="hide">
   <img class="w-logo" src="./logo-awb.png" alt="Agri Wangi Berry">
-  <h1 class="w-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
+  <h1 class="w-title">LAPORAN HASIL KERJA<br>GROWER<br>PT. AGRI WANGI BERRY</h1>
   <p class="w-subtitle">PT. Agri Wangi Berry</p>
 
   <div class="w-card">
     <h2>👋 Selamat Datang</h2>
     <p class="w-desc">
-      Aplikasi untuk mencatat <b>kegiatan harian GH 1</b>, <b>panen</b>, <b>grading</b>, dan <b>laporan grower</b>.
+      Aplikasi untuk mencatat <b>kegiatan harian</b>, <b>panen</b>, <b>grading</b>, dan <b>laporan grower</b>.
       Data otomatis tersimpan di perangkat & tersinkron ke Google Sheet.
     </p>
     <button id="welcome-btn" class="w-btn" onclick="welcomeConnect()">🔗 Sambung &amp; Mulai</button>
@@ -280,7 +280,7 @@
       <div class="w-feature"><span>📶</span><span>Bisa dipakai offline — data aman</span></div>
     </div>
   </div>
-  <div class="w-foot">v3.0.0 · Diinstall sebagai app dari browser</div>
+  <div class="w-foot">v3.1.0 · Diinstall sebagai app dari browser</div>
 </div>
 
 <!-- ========== APP HEADER ========== -->
@@ -288,7 +288,7 @@
   <div class="hdr-left">
     <img class="hdr-logo" src="./logo-awb.png" alt="AWB">
     <div class="hdr-title-wrap">
-      <h1>📝 Grower GH 1</h1>
+      <h1>📝 Grower AWB</h1>
       <span class="hdr-sub">PT. Agri Wangi Berry</span>
     </div>
   </div>
@@ -307,7 +307,7 @@
       <div class="hero-logo-box">
         <img src="./logo-awb.png" alt="Agri Wangi Berry">
       </div>
-      <h1 class="hero-title">LAPORAN HASIL KERJA<br>GROWER GH 1</h1>
+      <h1 class="hero-title">LAPORAN HASIL KERJA<br>GROWER</h1>
       <p class="hero-sub">PT. Agri Wangi Berry</p>
       <div class="hero-divider"></div>
     </div>
@@ -315,6 +315,16 @@
     <!-- IDENTITAS -->
     <div class="card">
       <div class="card-title">📋 Identitas</div>
+      
+      <div class="input-group">
+        <label class="required">Lokasi / GH</label>
+        <select id="glks-lokasi" required onchange="updateNamaOptions()">
+          <option value="">Pilih Lokasi...</option>
+          <option value="GH 1">GH 1</option>
+          <option value="GH 2">GH 2</option>
+        </select>
+      </div>
+
       <div class="input-group">
         <label class="required">Email</label>
         <input type="email" id="glks-email" required
@@ -329,17 +339,7 @@
       <div class="input-group">
         <label class="required">Nama Lengkap</label>
         <select id="glks-nama" required>
-          <option value="">Pilih Nama...</option>
-          <option value="AGYL AGNIVA">AGYL AGNIVA</option>
-          <option value="CECEP SAEPUDIN">CECEP SAEPUDIN</option>
-          <option value="LINDA">LINDA</option>
-          <option value="INDRA RUDIANA">INDRA RUDIANA</option>
-          <option value="MUHAMAD HILMI">MUHAMAD HILMI</option>
-          <option value="NESTI NURHAYATI">NESTI NURHAYATI</option>
-          <option value="SUTIAWAN">SUTIAWAN</option>
-          <option value="PIPIT SEPTIANI">PIPIT SEPTIANI</option>
-          <option value="RISDA">RISDA</option>
-          <option value="RANDI">RANDI</option>
+          <option value="">Pilih Lokasi dulu...</option>
         </select>
       </div>
     </div>
@@ -403,7 +403,7 @@
         <span class="info-note">Foto akan otomatis tersimpan ke Google Drive saat sync.</span>
       </div>
       <div class="input-group">
-        <label>Temuan HPT / Kendala GH 1</label>
+        <label>Temuan HPT / Kendala</label>
         <input type="text" id="glks-temuan" placeholder="Deskripsi temuan">
       </div>
     </div>
