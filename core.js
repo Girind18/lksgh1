@@ -1,7 +1,7 @@
 // ========== CORE.JS v3.1.0 ==========
 
 // ⚠️ GANTI dengan URL Web App Apps Script Anda
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIyQ6mUJOGR8Y51GVwXbZAhI_aiXFvol5y5iAiRQ3jjBuRadvLXjDlQJC1PZ0iiL3C/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxR2MAG1eQ2tfatKox_WODDOPCxm1iqpglHnA49OR9hGlwRvZrAhfcQ60tpIDhTayuH/exec';
 
 const APP_VERSION = '3.1.0';
 const WELCOMED_KEY = 'awb_gh1_welcomed_v1';
