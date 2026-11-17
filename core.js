@@ -33,10 +33,13 @@ const NAMA_GH1 = [
 ];
 
 const NAMA_GH2 = [
-  'NAMA GH 2 - ORANG 1',
-  'NAMA GH 2 - ORANG 2',
-  'NAMA GH 2 - ORANG 3'
-  // Tambahkan nama GH 2 di sini
+  'Rendi Saeful Nazar',
+  'Rismaya',
+  'Rima Rismayanti',
+  'Dena Raditya Sutrisna',
+  'Rudi Saputra',
+  'Ganjar',
+  'Ilham Jaelani'
 ];
 
 const KEGIATAN_UTAMA = [
